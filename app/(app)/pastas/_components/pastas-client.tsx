@@ -178,7 +178,7 @@ export default function PastasClient() {
           <button
             onClick={() => {
               setEditingFolder(null);
-              setFormData({ name: "", description: "" });
+              setFormData({ name: "", description: "", prefectureId: "" });
               setShowModal(true);
             }}
             className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-colors"
