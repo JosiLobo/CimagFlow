@@ -20,7 +20,9 @@ export const metadata: Metadata = {
     description: "Sistema profissional de gestão e assinatura digital de documentos",
     images: ["/og-image.png"],
   },
-  metadataBase: new URL(process.env.NEXTAUTH_URL ?? "http://localhost:3000"),
+  ...(process.env.NEXTAUTH_URL && {
+    metadataBase: new URL(process.env.NEXTAUTH_URL),
+  }),
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
