@@ -73,12 +73,14 @@ NOTIF_ID_DOCUMENTO_COMPLETAMENTE_ASSINADO=notif-id
 
 ### 3. Configurações de Build
 
-A Vercel detectará automaticamente as configurações do `package.json` e `vercel.json`:
+A Vercel detectará automaticamente as configurações do `package.json`:
 
 - ✅ **Framework Preset**: Next.js
-- ✅ **Build Command**: `prisma generate && prisma migrate deploy && next build`
+- ✅ **Build Command**: `npm run build` (executa `prisma generate && next build`)
 - ✅ **Output Directory**: `.next`
 - ✅ **Install Command**: `npm install`
+
+**Importante**: As migrações do banco de dados (`prisma migrate deploy`) devem ser executadas **APÓS** o primeiro deploy, não durante o build. Isso evita erros de conexão com o banco durante o processo de build.
 
 ### 4. Deploy
 
@@ -88,26 +90,67 @@ A Vercel detectará automaticamente as configurações do `package.json` e `verc
 
 ## Após o Deploy
 
-### 1. Executar Migrações (Primeiro Deploy)
+### 1. Executar Migrações (OBRIGATÓRIO - Primeiro Deploy)
 
-Se o `vercel.json` não executar as migrações automaticamente:
+**Importante**: Execute as migrações do banco APÓS o primeiro deploy bem-sucedido.
+
+#### Opção 1: Via Vercel CLI (Recomendado)
 
 ```bash
-# Instalar Vercel CLI
+# Instalar Vercel CLI (se ainda não tiver)
 npm i -g vercel
 
-# Login
+# Login na Vercel
 vercel login
 
 # Link do projeto
 vercel link
 
-# Puxar variáveis de ambiente
+# Puxar variáveis de ambiente (incluindo DATABASE_URL)
 vercel env pull .env.production
 
-# Executar migrações
-npx prisma migrate deploy
+# Executar migrações usando a DATABASE_URL de produção
+DATABASE_URL="$(grep DATABASE_URL .env.production | cut -d '=' -f2-)" npx prisma migrate deploy
 ```
+
+#### Opção 2: Via Local com DATABASE_URL de Produção
+
+```bash
+# Criar arquivo .env.production temporário
+echo "DATABASE_URL=postgresql://user:password@host:port/database" > .env.production
+
+# Executar migrações
+npx prisma migrate deploy --schema=./prisma/schema.prisma
+```
+
+#### Opção 3: Via Script Deploy do Vercel
+
+Adicione um script no `package.json` (já incluído):
+
+```json
+"scripts": {
+  "db:migrate": "prisma migrate deploy"
+}
+```
+
+Execute após o deploy:
+```bash
+vercel env pull .env.production
+npm run db:migrate
+```
+
+**Verificar se as migrações foram aplicadas:**
+
+```bash
+npx prisma migrate status
+```
+
+Você deve ver todas as 5 migrações listadas como aplicadas:
+- ✅ 20260228215915_init
+- ✅ 20260301001218_add_prefecture_to_folders
+- ✅ 20260301004021_add_company_fields
+- ✅ 20260301010000_update_bid_modalidades
+- ✅ 20260301020000_add_testemunha_type
 
 ### 2. Popular Banco de Dados (Opcional)
 
