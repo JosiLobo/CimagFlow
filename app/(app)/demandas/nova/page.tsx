@@ -26,6 +26,7 @@ export default function NovaDemandaPage() {
     requesterEmail: "",
     requesterPhone: "",
     requesterCpf: "",
+    dotacao: "",
     prefectureId: "",
     assignedToId: "",
     dueDate: "",
@@ -239,6 +240,16 @@ export default function NovaDemandaPage() {
                     placeholder="000.000.000-00"
                   />
                 </div>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="dotacao">Dotação Orçamentária</Label>
+                <Input
+                  id="dotacao"
+                  value={formData.dotacao}
+                  onChange={(e) => handleChange("dotacao", e.target.value)}
+                  placeholder="Ex: 3.3.90.39.00"
+                />
               </div>
             </div>
           </Card>

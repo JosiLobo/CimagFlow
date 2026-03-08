@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, FileText, Clock, CheckCircle2, AlertCircle } from "lucide-react";
+import { Search, FileText, Clock, CheckCircle2, AlertCircle, Paperclip, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -68,6 +68,12 @@ export default function ConsultaProtocoloPage() {
 
   const formatDateTime = (date: string) => {
     return new Date(date).toLocaleString("pt-BR");
+  };
+
+  const getFileName = (url: string) => {
+    const parts = url.split("/");
+    const fileNameWithParams = parts[parts.length - 1];
+    return decodeURIComponent(fileNameWithParams.split("?")[0]);
   };
 
   const StatusIcon = demand ? statusConfig[demand.status as keyof typeof statusConfig].icon : FileText;
@@ -190,6 +196,67 @@ export default function ConsultaProtocoloPage() {
                 </>
               )}
             </Card>
+
+            {/* Arquivos Enviados */}
+            {demand.attachments && demand.attachments.length > 0 && (
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Paperclip className="h-5 w-5" />
+                  Documentos Enviados
+                </h3>
+                <div className="grid gap-3">
+                  {demand.attachments.map((file: string, index: number) => (
+                    <a
+                      key={index}
+                      href={file}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent transition-colors"
+                    >
+                      <FileText className="h-5 w-5 text-blue-500 flex-shrink-0" />
+                      <span className="flex-1 text-sm truncate">{getFileName(file)}</span>
+                      <Download className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    </a>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {/* Resposta (se houver) */}
+            {(demand.responseComment || (demand.responseAttachments && demand.responseAttachments.length > 0)) && (
+              <Card className="p-6 border-green-200 bg-green-50/50">
+                <h3 className="text-lg font-semibold mb-4 text-green-900">Resposta Recebida</h3>
+                
+                {demand.responseComment && (
+                  <div className="mb-4">
+                    <p className="whitespace-pre-wrap text-sm">{demand.responseComment}</p>
+                  </div>
+                )}
+
+                {demand.responseAttachments && demand.responseAttachments.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium mb-3 text-green-800">
+                      Documentos Anexados na Resposta:
+                    </p>
+                    <div className="grid gap-2">
+                      {demand.responseAttachments.map((file: string, index: number) => (
+                        <a
+                          key={index}
+                          href={file}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-3 p-3 border border-green-300 rounded-lg hover:bg-green-100 transition-colors bg-white"
+                        >
+                          <FileText className="h-5 w-5 text-green-600 flex-shrink-0" />
+                          <span className="flex-1 text-sm truncate">{getFileName(file)}</span>
+                          <Download className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </Card>
+            )}
 
             {/* Timeline */}
             <Card className="p-6">

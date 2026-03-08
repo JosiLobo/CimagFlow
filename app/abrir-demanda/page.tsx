@@ -29,6 +29,7 @@ export default function AbrirDemandaPublicaPage() {
     requesterEmail: "",
     requesterPhone: "",
     requesterCpf: "",
+    dotacao: "",
     prefectureId: "",
     attachments: [] as string[],
   });
@@ -295,33 +296,13 @@ export default function AbrirDemandaPublicaPage() {
                     onValueChange={(value) => handleChange("priority", value)}
                   >
                     <SelectTrigger className="h-11">
-                      <SelectValue />
+                      <SelectValue placeholder="Selecione a prioridade..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="BAIXA">
-                        <span className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-gray-500"></span>
-                          Baixa
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="MEDIA">
-                        <span className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                          Média
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="ALTA">
-                        <span className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-orange-500"></span>
-                          Alta
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="URGENTE">
-                        <span className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                          Urgente
-                        </span>
-                      </SelectItem>
+                      <SelectItem value="BAIXA">🟢 Baixa</SelectItem>
+                      <SelectItem value="MEDIA">🔵 Média</SelectItem>
+                      <SelectItem value="ALTA">🟠 Alta</SelectItem>
+                      <SelectItem value="URGENTE">🔴 Urgente</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -373,6 +354,17 @@ export default function AbrirDemandaPublicaPage() {
                     placeholder="000.000.000-00"
                     value={formData.requesterCpf}
                     onChange={(e) => handleChange("requesterCpf", e.target.value)}
+                    className="h-11"
+                  />
+                </div>
+
+                <div className="grid gap-3">
+                  <Label htmlFor="dotacao" className="text-base">Dotação Orçamentária</Label>
+                  <Input
+                    id="dotacao"
+                    placeholder="Ex: 3.3.90.39.00"
+                    value={formData.dotacao}
+                    onChange={(e) => handleChange("dotacao", e.target.value)}
                     className="h-11"
                   />
                 </div>

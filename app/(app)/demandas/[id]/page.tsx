@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Edit2, Save, X, Clock, User, Mail, Phone, Building2, Calendar, FileText, Trash2 } from "lucide-react";
+import { ArrowLeft, Edit2, Save, X, Clock, User, Mail, Phone, Building2, Calendar, FileText, Trash2, Paperclip, Download, Upload, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,6 +47,10 @@ export default function DemandaDetalhesPage() {
     resolution: "",
     internalNotes: "",
   });
+
+  const [responseFiles, setResponseFiles] = useState<string[]>([]);
+  const [responseComment, setResponseComment] = useState("");
+  const [uploadingResponse, setUploadingResponse] = useState(false);
 
   useEffect(() => {
     loadDemand();
@@ -121,6 +125,87 @@ export default function DemandaDetalhesPage() {
       router.push("/demandas");
     } catch (error) {
       toast.error("Erro ao deletar demanda");
+    }
+  };
+
+  const getFileName = (url: string) => {
+    const parts = url.split("/");
+    const fileNameWithParams = parts[parts.length - 1];
+    return decodeURIComponent(fileNameWithParams.split("?")[0]);
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingResponse(true);
+    try {
+      const uploadedUrls: string[] = [];
+
+      for (const file of Array.from(files)) {
+        // Get presigned URL
+        const presignedRes = await fetch("/api/upload/presigned-private", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileType: file.type,
+          }),
+        });
+
+        if (!presignedRes.ok) throw new Error("Erro ao obter URL de upload");
+
+        const { url, fileUrl } = await presignedRes.json();
+
+        // Upload to S3
+        const uploadRes = await fetch(url, {
+          method: "PUT",
+          body: file,
+          headers: {
+            "Content-Type": file.type,
+          },
+        });
+
+        if (!uploadRes.ok) throw new Error("Erro ao fazer upload do arquivo");
+        uploadedUrls.push(fileUrl);
+      }
+
+      setResponseFiles([...responseFiles, ...uploadedUrls]);
+      toast.success(`${uploadedUrls.length} arquivo(s) adicionado(s)`);
+    } catch (error) {
+      toast.error("Erro ao fazer upload dos arquivos");
+    } finally {
+      setUploadingResponse(false);
+    }
+  };
+
+  const handleSendResponse = async () => {
+    if (responseFiles.length === 0 && !responseComment.trim()) {
+      toast.error("Adicione arquivos ou um comentário para enviar a resposta");
+      return;
+    }
+
+    setUploadingResponse(true);
+    try {
+      const res = await fetch(`/api/demands/${params.id}/response`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          responseAttachments: responseFiles,
+          responseComment: responseComment.trim(),
+        }),
+      });
+
+      if (!res.ok) throw new Error("Erro ao enviar resposta");
+
+      toast.success("Resposta enviada com sucesso! O solicitante será notificado por email.");
+      setResponseFiles([]);
+      setResponseComment("");
+      loadDemand(); // Recarregar para mostrar a resposta
+    } catch (error) {
+      toast.error("Erro ao enviar resposta");
+    } finally {
+      setUploadingResponse(false);
     }
   };
 
@@ -235,6 +320,140 @@ export default function DemandaDetalhesPage() {
               {demand.description}
             </p>
           </Card>
+
+          {/* Arquivos Enviados pelo Solicitante */}
+          {demand.attachments && demand.attachments.length > 0 && (
+            <Card className="p-6">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <Paperclip className="h-5 w-5" />
+                Arquivos Enviados
+              </h2>
+              <div className="grid gap-3">
+                {demand.attachments.map((file: string, index: number) => (
+                  <a
+                    key={index}
+                    href={file}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent transition-colors"
+                  >
+                    <FileText className="h-5 w-5 text-blue-500 flex-shrink-0" />
+                    <span className="flex-1 text-sm truncate">{getFileName(file)}</span>
+                    <Download className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  </a>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* Resposta e Upload de Documentos */}
+          <Card className="p-6">
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+              <Upload className="h-5 w-5" />
+              Enviar Resposta / Documentos
+            </h2>
+            <div className="space-y-4">
+              <div className="grid gap-2">
+                <Label>Comentário da Resposta</Label>
+                <Textarea
+                  value={responseComment}
+                  onChange={(e) => setResponseComment(e.target.value)}
+                  placeholder="Adicione um comentário ou instruções sobre os documentos enviados..."
+                  rows={4}
+                  disabled={uploadingResponse}
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label>Upload de Arquivos (Contratos, Documentos)</Label>
+                <div className="border-2 border-dashed rounded-lg p-6 hover:border-primary/50 transition-colors">
+                  <input
+                    type="file"
+                    multiple
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="response-file-upload"
+                    disabled={uploadingResponse}
+                  />
+                  <label
+                    htmlFor="response-file-upload"
+                    className="flex flex-col items-center gap-2 cursor-pointer"
+                  >
+                    <Upload className="h-8 w-8 text-muted-foreground" />
+                    <div className="text-center">
+                      <p className="text-sm font-medium">Clique para fazer upload</p>
+                      <p className="text-xs text-muted-foreground">
+                        PDF, DOCX, XLSX, imagens e mais
+                      </p>
+                    </div>
+                  </label>
+                </div>
+
+                {/* Lista de arquivos adicionados */}
+                {responseFiles.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    {responseFiles.map((file, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 p-2 bg-accent rounded text-sm"
+                      >
+                        <FileText className="h-4 w-4 text-green-500" />
+                        <span className="flex-1 truncate">{getFileName(file)}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setResponseFiles(responseFiles.filter((_, i) => i !== index));
+                          }}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <Button
+                onClick={handleSendResponse}
+                disabled={uploadingResponse || (responseFiles.length === 0 && !responseComment.trim())}
+                className="w-full"
+              >
+                <Send className="mr-2 h-4 w-4" />
+                {uploadingResponse ? "Enviando..." : "Enviar Resposta"}
+              </Button>
+            </div>
+          </Card>
+
+          {/* Resposta Anterior (se houver) */}
+          {demand.responseComment && (
+            <Card className="p-6 border-green-200 bg-green-50/50 dark:bg-green-950/20">
+              <h2 className="text-xl font-semibold mb-4">Resposta Enviada</h2>
+              <p className="whitespace-pre-wrap text-muted-foreground mb-4">
+                {demand.responseComment}
+              </p>
+              {demand.responseAttachments && demand.responseAttachments.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Documentos Anexados:</p>
+                  <div className="grid gap-2">
+                    {demand.responseAttachments.map((file: string, index: number) => (
+                      <a
+                        key={index}
+                        href={file}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent transition-colors bg-white dark:bg-gray-900"
+                      >
+                        <FileText className="h-5 w-5 text-green-500 flex-shrink-0" />
+                        <span className="flex-1 text-sm truncate">{getFileName(file)}</span>
+                        <Download className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </Card>
+          )}
 
           {/* Atualização de Status */}
           {editing && (

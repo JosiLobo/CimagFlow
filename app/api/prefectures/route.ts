@@ -7,15 +7,19 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!(session?.user as any)?.id) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
-
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
     const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const limit = parseInt(searchParams.get("limit") || "100");
+    const isPublicRequest = !searchParams.has("page") && !searchParams.has("search");
+
+    // Para requisições públicas (sem parâmetros), não requer autenticação
+    if (!isPublicRequest) {
+      const session = await getServerSession(authOptions);
+      if (!(session?.user as any)?.id) {
+        return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+      }
+    }
 
     const where = search
       ? {
@@ -27,6 +31,21 @@ export async function GET(request: NextRequest) {
         }
       : {};
 
+    // Para requisições públicas, retorna lista simples sem paginação
+    if (isPublicRequest) {
+      const prefectures = await prisma.prefecture.findMany({
+        orderBy: { name: "asc" },
+        select: {
+          id: true,
+          name: true,
+          city: true,
+          state: true,
+        },
+      });
+      return NextResponse.json(prefectures);
+    }
+
+    // Para requisições autenticadas, retorna com paginação e contadores
     const [prefectures, total] = await Promise.all([
       prisma.prefecture.findMany({
         where,

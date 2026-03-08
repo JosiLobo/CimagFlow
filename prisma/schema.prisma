@@ -335,6 +335,7 @@ model Demand {
   requesterEmail  String
   requesterPhone  String?
   requesterCpf    String?
+  dotacao         String?
   
   // Relacionamentos
   prefectureId    String?
@@ -352,8 +353,10 @@ model Demand {
   
   // Anexos e observações
   attachments     String[]       @default([])
+  responseAttachments String[]   @default([])
   internalNotes   String?        @db.Text
   resolution      String?        @db.Text
+  responseComment String?        @db.Text
   
   // Relacionamentos
   prefecture      Prefecture?    @relation(fields: [prefectureId], references: [id])

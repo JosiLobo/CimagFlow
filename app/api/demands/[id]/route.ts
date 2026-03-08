@@ -128,52 +128,62 @@ export async function PATCH(
         comment: `Status alterado de ${currentDemand.status} para ${status}`,
       });
 
-      // Se concluída, notificar requerente
-      if (status === "CONCLUIDA") {
+      // Notificar requerente sobre mudanças de status importantes
+      const statusToNotify = ["EM_ANDAMENTO", "AGUARDANDO_RESPOSTA", "CONCLUIDA"];
+      if (statusToNotify.includes(status)) {
+        const statusMessages: { [key: string]: string } = {
+          EM_ANDAMENTO: "Sua demanda está em andamento e sendo processada pela equipe.",
+          AGUARDANDO_RESPOSTA: "Sua demanda está aguardando resposta. Em breve você receberá mais informações.",
+          CONCLUIDA: "Sua demanda foi concluída com sucesso!",
+        };
+
         try {
           await sendEmail({
             to: demand.requesterEmail,
-            subject: `Demanda Concluída - Protocolo ${demand.protocolNumber}`,
+            subject: `Atualização de Demanda - Protocolo ${demand.protocolNumber}`,
             notificationId: process.env.NOTIF_ID_DOCUMENTO_COMPLETAMENTE_ASSINADO || "default",
             html: `
-              <h2>Demanda Concluída!</h2>
+              <h2>Atualização de Demanda</h2>
               <p>Olá <strong>${demand.requesterName}</strong>,</p>
-              <p>Sua demanda foi concluída!</p>
+              <p>Sua demanda foi atualizada!</p>
               <div style="background: #f5f5f5; padding: 15px; margin: 20px 0; border-radius: 5px;">
                 <p><strong>Protocolo:</strong> ${demand.protocolNumber}</p>
                 <p><strong>Título:</strong> ${demand.title}</p>
-                <p><strong>Status:</strong> CONCLUÍDA</p>
-                ${resolution ? `<p><strong>Resolução:</strong> ${resolution}</p>` : ""}
+                <p><strong>Novo Status:</strong> ${status}</p>
               </div>
+              <p>${statusMessages[status]}</p>
+              ${resolution && status === "CONCLUIDA" ? `<p><strong>Resolução:</strong> ${resolution}</p>` : ""}
+              <p>Você pode consultar o status completo através do link:<br>
+              ${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/consulta-protocolo</p>
               <p>Atenciosamente,<br><strong>Equipe Cimagflow</strong></p>
             `,
           });
         } catch (emailError) {
           console.error("Erro ao enviar email:", emailError);
         }
+      }
 
-        // Notificar prefeitura se existir
-        if (demand.prefectureId && demand.prefecture?.email) {
-          try {
-            await sendEmail({
-              to: demand.prefecture.email,
-              subject: `Demanda Concluída - Protocolo ${demand.protocolNumber}`,
-              notificationId: process.env.NOTIF_ID_DOCUMENTO_COMPLETAMENTE_ASSINADO || "default",
-              html: `
-                <h2>Demanda Concluída</h2>
-                <p>A demanda <strong>${demand.protocolNumber}</strong> foi concluída.</p>
-                <div style="background: #f5f5f5; padding: 15px; margin: 20px 0; border-radius: 5px;">
-                  <p><strong>Protocolo:</strong> ${demand.protocolNumber}</p>
-                  <p><strong>Título:</strong> ${demand.title}</p>
-                  <p><strong>Requerente:</strong> ${demand.requesterName}</p>
-                  ${resolution ? `<p><strong>Resolução:</strong> ${resolution}</p>` : ""}
-                </div>
-                <p>Atenciosamente,<br><strong>Equipe Cimagflow</strong></p>
-              `,
-            });
-          } catch (emailError) {
-            console.error("Erro ao enviar email para prefeitura:", emailError);
-          }
+      // Se concluída, notificar prefeitura também
+      if (status === "CONCLUIDA" && demand.prefectureId && demand.prefecture?.email) {
+        try {
+          await sendEmail({
+            to: demand.prefecture.email,
+            subject: `Demanda Concluída - Protocolo ${demand.protocolNumber}`,
+            notificationId: process.env.NOTIF_ID_DOCUMENTO_COMPLETAMENTE_ASSINADO || "default",
+            html: `
+              <h2>Demanda Concluída</h2>
+              <p>A demanda <strong>${demand.protocolNumber}</strong> foi concluída.</p>
+              <div style="background: #f5f5f5; padding: 15px; margin: 20px 0; border-radius: 5px;">
+                <p><strong>Protocolo:</strong> ${demand.protocolNumber}</p>
+                <p><strong>Título:</strong> ${demand.title}</p>
+                <p><strong>Requerente:</strong> ${demand.requesterName}</p>
+                ${resolution ? `<p><strong>Resolução:</strong> ${resolution}</p>` : ""}
+              </div>
+              <p>Atenciosamente,<br><strong>Equipe Cimagflow</strong></p>
+            `,
+          });
+        } catch (emailError) {
+          console.error("Erro ao enviar email para prefeitura:", emailError);
         }
       }
     }

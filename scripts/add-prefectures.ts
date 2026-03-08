@@ -42,46 +42,33 @@ async function main() {
 
   for (const prefecture of prefectures) {
     try {
-      const result = await prisma.prefecture.upsert({
-        where: { 
-          // Buscar por combinação única de nome/cidade/estado
-          id: `${prefecture.city.toLowerCase().replace(/\s+/g, '-')}-${prefecture.state.toLowerCase()}`
-        },
-        update: {
-          name: `Prefeitura Municipal de ${prefecture.name}`,
+      // Verificar se já existe uma prefeitura com a mesma cidade e estado
+      const existingPrefecture = await prisma.prefecture.findFirst({
+        where: {
           city: prefecture.city,
           state: prefecture.state,
-          isActive: true,
-        },
-        create: {
-          name: `Prefeitura Municipal de ${prefecture.name}`,
-          city: prefecture.city,
-          state: prefecture.state,
-          isActive: true,
         },
       });
 
-      if (result) {
-        console.log(`✅ ${prefecture.name} - ${prefecture.state}`);
-        created++;
-      }
-    } catch (error: any) {
-      // Se falhar no upsert, tentar criar diretamente
-      try {
-        await prisma.prefecture.create({
-          data: {
-            name: `Prefeitura Municipal de ${prefecture.name}`,
-            city: prefecture.city,
-            state: prefecture.state,
-            isActive: true,
-          },
-        });
-        console.log(`✅ ${prefecture.name} - ${prefecture.state}`);
-        created++;
-      } catch (createError) {
+      if (existingPrefecture) {
         console.log(`⚠️  ${prefecture.name} - ${prefecture.state} (já existe)`);
         existing++;
+        continue;
       }
+
+      // Criar nova prefeitura
+      await prisma.prefecture.create({
+        data: {
+          name: `Prefeitura Municipal de ${prefecture.name}`,
+          city: prefecture.city,
+          state: prefecture.state,
+        },
+      });
+
+      console.log(`✅ ${prefecture.name} - ${prefecture.state}`);
+      created++;
+    } catch (error) {
+      console.error(`❌ Erro ao processar ${prefecture.name}:`, error);
     }
   }
 
@@ -100,3 +87,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+

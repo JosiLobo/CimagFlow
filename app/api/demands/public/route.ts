@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
       requesterEmail,
       requesterPhone,
       requesterCpf,
+      dotacao,
       prefectureId,
     } = data;
 
@@ -78,6 +79,7 @@ export async function POST(req: NextRequest) {
         requesterEmail,
         requesterPhone,
         requesterCpf,
+        dotacao,
         prefectureId,
         publicSubmission: true, // Flag para identificar que foi criada publicamente
       },
