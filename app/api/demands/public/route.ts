@@ -95,11 +95,6 @@ export async function POST(req: NextRequest) {
         action: "CRIACAO",
         userName: requesterName,
         comment: "Demanda criada via formulário público",
-        oldValues: {},
-        newValues: {
-          status: "ABERTA",
-          priority,
-        },
       },
     });
 
