@@ -450,16 +450,6 @@ export default function AbrirDemandaPublicaPage() {
             </div>
           </form>
         </Card>
-
-        <div className="mt-8 text-center">
-          <Link 
-            href="/login" 
-            className="inline-flex items-center gap-2 text-sm text-blue-200 hover:text-white transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Acessar Sistema Interno
-          </Link>
-        </div>
       </div>
     </div>
   );
