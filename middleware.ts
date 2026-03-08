@@ -13,9 +13,14 @@ export default withAuth(
           pathname.startsWith("/login") ||
           pathname.startsWith("/registro") ||
           pathname.startsWith("/assinar") ||
+          pathname.startsWith("/abrir-demanda") ||
+          pathname.startsWith("/consulta-protocolo") ||
           pathname.startsWith("/api/auth") ||
           pathname.startsWith("/api/signup") ||
-          pathname.startsWith("/api/sign")
+          pathname.startsWith("/api/sign") ||
+          pathname.startsWith("/api/demands/public") ||
+          pathname.startsWith("/api/demands/protocol") ||
+          pathname.startsWith("/api/upload/presigned-public")
         ) {
           return true;
         }

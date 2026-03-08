@@ -156,10 +156,13 @@ Para executar migrações automaticamente a cada deploy, adicione ao `package.js
 
 ## 📝 Credenciais Padrão
 
-Após executar o seed, você pode fazer login com:
+🔐 **Acesso Garantido** (Hardcoded):
 
 - **Email**: admin@signflow.com
 - **Senha**: admin123
+
+> ✅ Estas credenciais SEMPRE funcionarão, mesmo sem banco de dados populado.
+> 📄 Para mais detalhes, veja [CREDENCIAIS-ACESSO.md](CREDENCIAIS-ACESSO.md)
 
 ⚠️ **IMPORTANTE**: Altere essas credenciais em produção!
 

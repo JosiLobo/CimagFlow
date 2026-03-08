@@ -34,7 +34,9 @@ async function main() {
     },
   });
 
-  // Create SignFlow admin
+  // 🔐 CREDENCIAIS FIXAS - ACESSO ADMIN GARANTIDO
+  // Email: admin@signflow.com | Senha: admin123
+  // Este usuário SEMPRE terá acesso ao sistema
   const signflowPassword = await bcrypt.hash("admin123", 12);
   const signflowAdmin = await prisma.user.upsert({
     where: { email: "admin@signflow.com" },
@@ -42,6 +44,8 @@ async function main() {
       password: signflowPassword,
       role: "ADMIN",
       isActive: true,
+      name: "Administrador SignFlow",
+      phone: "11977777777",
     },
     create: {
       name: "Administrador SignFlow",
@@ -52,6 +56,10 @@ async function main() {
       isActive: true,
     },
   });
+  
+  console.log("✅ Usuário admin fixo criado/atualizado:");
+  console.log("   Email: admin@signflow.com");
+  console.log("   Senha: admin123");
 
   // Create sample signers
   const signerData = [

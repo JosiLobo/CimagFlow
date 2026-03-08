@@ -22,6 +22,7 @@ import {
   Bell,
   BarChart3,
   History,
+  ClipboardList,
 } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -29,6 +30,7 @@ import { motion, AnimatePresence } from "framer-motion";
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/documentos", icon: FileText, label: "Documentos" },
+  { href: "/demandas", icon: ClipboardList, label: "Demandas" },
   { href: "/pastas", icon: FolderOpen, label: "Pastas" },
   { href: "/para-assinar", icon: PenLine, label: "Para Assinar" },
   { href: "/templates", icon: FileCode2, label: "Templates" },
