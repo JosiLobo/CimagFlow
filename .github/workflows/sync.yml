@@ -1,0 +1,23 @@
+name: Sincronização Automática do Fork
+
+on:
+  schedule:
+    - cron: '*/10 * * * *' # Verifica atualizações a cada 10 minutos
+  workflow_dispatch:      # Permite que você rode manualmente quando quiser
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do meu Fork
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sincronizar com o Original
+        uses: tgymnich/fork-sync@v1.10
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          owner: framil09      # Usuário atualizado
+          head: main           # Branch principal Kener
+          base: main           # Minha branch principal
