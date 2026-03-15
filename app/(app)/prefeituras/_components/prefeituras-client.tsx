@@ -13,7 +13,6 @@ import {
   Phone,
   Mail,
   User,
-  FileText,
   Users,
   UserPlus,
   UserMinus,
@@ -324,10 +323,6 @@ export default function PrefeiturasClient() {
                   <span>{pref._count.signers} assinantes</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
-                <div className="flex items-center gap-1 text-gray-500 px-2.5 py-1.5">
-                  <FileText className="w-4 h-4" />
-                  <span>{pref._count.bids} editais</span>
-                </div>
               </div>
             </motion.div>
           ))}
