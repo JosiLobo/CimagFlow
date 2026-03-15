@@ -49,6 +49,7 @@ export default function TemplatesClient() {
   const [uploadingFooter, setUploadingFooter] = useState(false);
   const headerInputRef = useRef<HTMLInputElement>(null);
   const footerInputRef = useRef<HTMLInputElement>(null);
+  const [editorVersion, setEditorVersion] = useState(0);
 
   const fetchTemplates = useCallback(async () => {
     setLoading(true);
@@ -75,6 +76,7 @@ export default function TemplatesClient() {
     setHeaderImage(null);
     setFooterImage(null);
     setShowModal(true);
+    setEditorVersion((v) => v + 1);
   };
   const openEdit = (t: any) => {
     setForm({ name: t.name ?? "", description: t.description ?? "", content: t.content ?? "", variables: t.variables ?? [] });
@@ -86,6 +88,7 @@ export default function TemplatesClient() {
     setHeaderImage(t.headerImage ?? null);
     setFooterImage(t.footerImage ?? null);
     setShowModal(true);
+    setEditorVersion((v) => v + 1);
   };
 
   const uploadHeaderImage = async (file: File) => {
@@ -95,7 +98,6 @@ export default function TemplatesClient() {
     try {
       const reader = new FileReader();
       reader.onload = () => {
-        if (createEditorRef.current) setCreateEditorContent(createEditorRef.current.innerHTML);
         setHeaderImage(reader.result as string);
         setUploadingHeader(false);
       };
@@ -114,7 +116,6 @@ export default function TemplatesClient() {
     try {
       const reader = new FileReader();
       reader.onload = () => {
-        if (createEditorRef.current) setCreateEditorContent(createEditorRef.current.innerHTML);
         setFooterImage(reader.result as string);
         setUploadingFooter(false);
       };
@@ -125,6 +126,14 @@ export default function TemplatesClient() {
       reader.readAsDataURL(file);
     } catch (e) { console.error(e); alert("Erro ao fazer upload"); setUploadingFooter(false); }
   };
+
+  // Initialize editor content via useEffect (only on intentional content changes)
+  useEffect(() => {
+    if (editorVersion > 0 && createEditorRef.current) {
+      createEditorRef.current.innerHTML = createEditorContent;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editorVersion]);
 
   const saveCreateSelection = () => {
     const sel = window.getSelection();
@@ -426,7 +435,7 @@ export default function TemplatesClient() {
                       <div className="w-7 h-7 rounded border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center" title="Cabeçalho">
                         <img src={headerImage} alt="Cabeçalho" className="w-full h-full object-contain" />
                       </div>
-                      <button onClick={() => { if (createEditorRef.current) setCreateEditorContent(createEditorRef.current.innerHTML); setHeaderImage(null); }} title="Remover cabeçalho"
+                      <button onClick={() => setHeaderImage(null)} title="Remover cabeçalho"
                         className="p-0.5 text-red-400 hover:text-red-600 rounded transition-colors">
                         <X className="w-3 h-3" />
                       </button>
@@ -445,7 +454,7 @@ export default function TemplatesClient() {
                       <div className="w-7 h-7 rounded border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center" title="Rodapé">
                         <img src={footerImage} alt="Rodapé" className="w-full h-full object-contain" />
                       </div>
-                      <button onClick={() => { if (createEditorRef.current) setCreateEditorContent(createEditorRef.current.innerHTML); setFooterImage(null); }} title="Remover rodapé"
+                      <button onClick={() => setFooterImage(null)} title="Remover rodapé"
                         className="p-0.5 text-red-400 hover:text-red-600 rounded transition-colors">
                         <X className="w-3 h-3" />
                       </button>
@@ -563,13 +572,13 @@ export default function TemplatesClient() {
                 <div className="flex-1 overflow-y-auto bg-gray-100 p-4 sm:p-8">
                   <div className="flex flex-col mx-auto bg-white shadow-lg rounded-sm max-w-3xl" style={{ minHeight: "1123px" }}>
                     {headerImage && (
-                      <img src={headerImage} alt="Cabeçalho" className="w-full h-auto pointer-events-none select-none flex-shrink-0" draggable={false} />
+                      <img key="header-img" src={headerImage} alt="Cabeçalho" className="w-full h-auto pointer-events-none select-none flex-shrink-0" draggable={false} />
                     )}
                     <div
+                      key="create-editor"
                       ref={createEditorRef}
                       contentEditable
                       suppressContentEditableWarning
-                      dangerouslySetInnerHTML={{ __html: createEditorContent }}
                       className="outline-none px-12 py-8 flex-1 text-gray-800 text-[14px] leading-relaxed"
                       style={{
                         fontFamily: "'Times New Roman', 'Georgia', serif",
@@ -579,7 +588,7 @@ export default function TemplatesClient() {
                       data-placeholder="Comece a digitar o conteúdo do contrato aqui... Use o painel de variáveis para inserir campos dinâmicos como {prefeitura}, {empresa}, etc."
                     />
                     {footerImage && (
-                      <img src={footerImage} alt="Rodapé" className="w-full h-auto pointer-events-none select-none flex-shrink-0 mt-auto" draggable={false} />
+                      <img key="footer-img" src={footerImage} alt="Rodapé" className="w-full h-auto pointer-events-none select-none flex-shrink-0 mt-auto" draggable={false} />
                     )}
                   </div>
                 </div>
@@ -848,10 +857,11 @@ export default function TemplatesClient() {
                   <div className={`flex flex-col mx-auto bg-white shadow-lg rounded-sm ${editorFullscreen ? "max-w-4xl" : "max-w-3xl"}`}
                     style={{ minHeight: "1123px" }}>
                     {showPreview?.headerImage && (
-                      <img src={showPreview.headerImage} alt="Cabeçalho" className="w-full h-auto pointer-events-none select-none flex-shrink-0" draggable={false} />
+                      <img key="preview-header" src={showPreview.headerImage} alt="Cabeçalho" className="w-full h-auto pointer-events-none select-none flex-shrink-0" draggable={false} />
                     )}
                     {previewEditing ? (
                       <div
+                        key="preview-editor"
                         ref={editorRef}
                         contentEditable
                         suppressContentEditableWarning

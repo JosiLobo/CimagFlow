@@ -695,10 +695,11 @@ export default function UsarModeloClient({ templateId }: UsarModeloClientProps) 
             <div className={`flex-1 overflow-y-auto bg-gray-100 p-4 sm:p-6 ${previewFullscreen ? "" : "max-h-[75vh]"}`}>
               <div className="flex flex-col mx-auto bg-white shadow-lg rounded-sm max-w-3xl" style={{ minHeight: "1123px" }}>
                 {template?.headerImage && (
-                  <img src={template.headerImage} alt="Cabeçalho" className="w-full h-auto pointer-events-none select-none flex-shrink-0" draggable={false} />
+                  <img key="header-img" src={template.headerImage} alt="Cabeçalho" className="w-full h-auto pointer-events-none select-none flex-shrink-0" draggable={false} />
                 )}
                 {inlineEditing ? (
                   <div
+                    key="usar-editor"
                     ref={documentRef}
                     contentEditable
                     suppressContentEditableWarning
