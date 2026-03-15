@@ -41,16 +41,20 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     const userId = (session.user as any).id;
     const body = await req.json();
-    const { title, variables, folderId, signerIds, sendAfterCreate } = body;
+    const { title, variables, customContent, folderId, signerIds, sendAfterCreate } = body;
 
     const template = await prisma.template.findUnique({ where: { id: params.id } });
     if (!template) return NextResponse.json({ error: "Template não encontrado" }, { status: 404 });
 
-    // Substituir variáveis no conteúdo do template
+    // Se tiver customContent (editado inline), usar diretamente; senão substituir variáveis
     let content = template.content;
-    for (const [key, value] of Object.entries(variables)) {
-      const regex = new RegExp(`\\{${key}\\}`, "g");
-      content = content.replace(regex, String(value ?? ""));
+    if (customContent) {
+      content = customContent;
+    } else {
+      for (const [key, value] of Object.entries(variables)) {
+        const regex = new RegExp(`\\{${key}\\}`, "g");
+        content = content.replace(regex, String(value ?? ""));
+      }
     }
 
     // Criar documento

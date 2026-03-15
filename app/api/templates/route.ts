@@ -37,12 +37,12 @@ export async function POST(req: Request) {
 
     const userId = (session.user as any).id;
     const body = await req.json();
-    const { name, description, content, variables } = body;
+    const { name, description, content, variables, headerImage, footerImage } = body;
 
     if (!name || !content) return NextResponse.json({ error: "Nome e conteúdo obrigatórios" }, { status: 400 });
 
     const template = await prisma.template.create({
-      data: { name, description: description ?? null, content, variables: variables ?? [], createdBy: userId },
+      data: { name, description: description ?? null, content, variables: variables ?? [], headerImage: headerImage ?? null, footerImage: footerImage ?? null, createdBy: userId },
     });
 
     return NextResponse.json({ template }, { status: 201 });
