@@ -24,6 +24,7 @@ export async function PATCH(
     if (body.phone !== undefined) updateData.phone = body.phone;
     if (body.role) updateData.role = body.role;
     if (body.isActive !== undefined) updateData.isActive = body.isActive;
+    if (body.permissions !== undefined) updateData.permissions = body.permissions;
     if (body.password) {
       updateData.password = await bcrypt.hash(body.password, 10);
     }
@@ -38,6 +39,7 @@ export async function PATCH(
         role: true,
         phone: true,
         isActive: true,
+        permissions: true,
         lastLoginAt: true,
         createdAt: true,
       },

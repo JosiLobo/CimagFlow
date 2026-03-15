@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
         role: true,
         phone: true,
         isActive: true,
+        permissions: true,
         lastLoginAt: true,
         createdAt: true,
       },
@@ -73,6 +74,7 @@ export async function POST(request: NextRequest) {
         password: hashedPassword,
         role: role || "COLABORADOR",
         phone,
+        permissions: body.permissions || [],
       },
       select: {
         id: true,

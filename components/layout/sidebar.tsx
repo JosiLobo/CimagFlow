@@ -62,6 +62,16 @@ export default function Sidebar({ userName, userRole }: SidebarProps) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const { data: session } = useSession() ?? {};
 
+  const userPermissions: string[] = (session?.user as any)?.permissions ?? [];
+  const isAdmin = userRole === "ADMIN";
+
+  const visibleNavItems = isAdmin
+    ? navItems
+    : navItems.filter((item) => {
+        const moduleKey = item.href.replace("/", "");
+        return userPermissions.includes(moduleKey);
+      });
+
   const fetchUnreadCount = useCallback(async () => {
     try {
       const res = await fetch("/api/notifications?unread=true");
@@ -113,7 +123,7 @@ export default function Sidebar({ userName, userRole }: SidebarProps) {
 
       {/* Nav */}
       <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + "/");
           return (
             <Link

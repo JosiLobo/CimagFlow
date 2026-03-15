@@ -32,6 +32,7 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           phone: user.phone ?? undefined,
           photo: user.photo ?? undefined,
+          permissions: (user as any).permissions ?? [],
         };
       },
     }),
@@ -43,6 +44,7 @@ export const authOptions: NextAuthOptions = {
         token.role = (user as any).role;
         token.phone = (user as any).phone;
         token.photo = (user as any).photo;
+        token.permissions = (user as any).permissions ?? [];
       }
       return token;
     },
@@ -52,6 +54,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).role = token.role;
         (session.user as any).phone = token.phone;
         (session.user as any).photo = token.photo;
+        (session.user as any).permissions = token.permissions ?? [];
       }
       return session;
     },

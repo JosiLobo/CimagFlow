@@ -15,11 +15,36 @@ import {
   Clock,
   CheckCircle,
   XCircle,
+  LayoutDashboard,
+  FileText,
+  ClipboardList,
+  FolderOpen,
+  PenLine,
+  FileCode2,
+  Building2,
+  Building,
+  ScrollText,
+  FileCheck,
+  Eye,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+const ALL_MODULES = [
+  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { key: "documentos", label: "Documentos", icon: FileText },
+  { key: "demandas", label: "Demandas", icon: ClipboardList },
+  { key: "pastas", label: "Pastas", icon: FolderOpen },
+  { key: "para-assinar", label: "Para Assinar", icon: PenLine },
+  { key: "templates", label: "Templates", icon: FileCode2 },
+  { key: "assinantes", label: "Assinantes", icon: Users },
+  { key: "prefeituras", label: "Prefeituras", icon: Building2 },
+  { key: "empresas", label: "Empresas", icon: Building },
+  { key: "editais", label: "Editais", icon: ScrollText },
+  { key: "atas", label: "Atas", icon: FileCheck },
+];
 
 interface User {
   id: string;
@@ -28,6 +53,7 @@ interface User {
   role: string;
   phone: string | null;
   isActive: boolean;
+  permissions: string[];
   lastLoginAt: string | null;
   createdAt: string;
 }
@@ -45,6 +71,7 @@ export default function ColaboradoresClient() {
     password: "",
     phone: "",
     role: "COLABORADOR",
+    permissions: ALL_MODULES.map((m) => m.key),
   });
 
   const userRole = (session?.user as any)?.role;
@@ -73,7 +100,7 @@ export default function ColaboradoresClient() {
     e.preventDefault();
     try {
       if (editingUser) {
-        const updateData: Record<string, string> = { name: formData.name, phone: formData.phone, role: formData.role };
+        const updateData: Record<string, unknown> = { name: formData.name, phone: formData.phone, role: formData.role, permissions: formData.permissions };
         if (formData.password) updateData.password = formData.password;
         await fetch(`/api/collaborators/${editingUser.id}`, {
           method: "PATCH",
@@ -139,12 +166,13 @@ export default function ColaboradoresClient() {
       password: "",
       phone: user.phone || "",
       role: user.role,
+      permissions: user.permissions?.length ? user.permissions : ALL_MODULES.map((m) => m.key),
     });
     setShowModal(true);
   };
 
   const resetForm = () => {
-    setFormData({ name: "", email: "", password: "", phone: "", role: "COLABORADOR" });
+    setFormData({ name: "", email: "", password: "", phone: "", role: "COLABORADOR", permissions: ALL_MODULES.map((m) => m.key) });
   };
 
   if (!isAdmin) {
@@ -204,6 +232,7 @@ export default function ColaboradoresClient() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Usuário</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contato</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Função</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Módulos</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Último Acesso</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
@@ -248,6 +277,19 @@ export default function ColaboradoresClient() {
                       }`}>
                         {user.role === "ADMIN" ? "Administrador" : "Colaborador"}
                       </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      {user.role === "ADMIN" ? (
+                        <span className="flex items-center gap-1 text-xs text-purple-600 font-medium">
+                          <Eye className="w-3 h-3" />
+                          Todos
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-xs text-gray-600">
+                          <Eye className="w-3 h-3" />
+                          {user.permissions?.length || 0} de {ALL_MODULES.length}
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <button
@@ -305,7 +347,7 @@ export default function ColaboradoresClient() {
               initial={{ scale: 0.95 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.95 }}
-              className="bg-white rounded-2xl w-full max-w-md p-6"
+              className="bg-white rounded-2xl w-full max-w-lg p-6"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-4">
@@ -314,7 +356,7 @@ export default function ColaboradoresClient() {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Nome *</label>
                   <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500" required />
@@ -338,6 +380,62 @@ export default function ColaboradoresClient() {
                     <option value="ADMIN">Administrador</option>
                   </select>
                 </div>
+                {formData.role !== "ADMIN" && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-medium text-gray-700">Módulos Permitidos</label>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, permissions: ALL_MODULES.map((m) => m.key) })}
+                          className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
+                        >
+                          Marcar todos
+                        </button>
+                        <span className="text-gray-300">|</span>
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, permissions: [] })}
+                          className="text-xs text-red-500 hover:text-red-600 font-medium"
+                        >
+                          Desmarcar
+                        </button>
+                      </div>
+                    </div>
+                    <div className="border border-gray-200 rounded-xl p-3 space-y-1 max-h-52 overflow-y-auto">
+                      {ALL_MODULES.map((mod) => {
+                        const checked = formData.permissions.includes(mod.key);
+                        return (
+                          <label
+                            key={mod.key}
+                            className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                              checked ? "bg-emerald-50" : "hover:bg-gray-50"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => {
+                                const perms = checked
+                                  ? formData.permissions.filter((p) => p !== mod.key)
+                                  : [...formData.permissions, mod.key];
+                                setFormData({ ...formData, permissions: perms });
+                              }}
+                              className="w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
+                            />
+                            <mod.icon className={`w-4 h-4 ${checked ? "text-emerald-600" : "text-gray-400"}`} />
+                            <span className={`text-sm ${checked ? "text-gray-900 font-medium" : "text-gray-500"}`}>
+                              {mod.label}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {formData.permissions.length} de {ALL_MODULES.length} módulos selecionados
+                    </p>
+                  </div>
+                )}
                 <div className="flex gap-3 pt-2">
                   <button type="button" onClick={() => setShowModal(false)} className="flex-1 px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50">Cancelar</button>
                   <button type="submit" className="flex-1 px-4 py-2 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600">Salvar</button>
