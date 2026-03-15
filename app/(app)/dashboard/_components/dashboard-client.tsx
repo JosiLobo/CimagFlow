@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   FileText,
@@ -21,15 +21,16 @@ import {
   BookOpen,
   Handshake,
   RefreshCw,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
+import useSWR from "swr";
 
-// Dynamic import recharts to avoid SSR/webpack chunk issues
-import {
-  PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  AreaChart, Area, Legend,
-} from "recharts";
+// Lazy-load recharts (heavy ~200KB) — only loaded when charts scroll into view
+let rechartsModule: typeof import("recharts") | null = null;
+const rechartsReady = typeof window !== "undefined"
+  ? import("recharts").then((mod) => { rechartsModule = mod; return mod; })
+  : Promise.resolve(null);
 
 // ─── Types ───
 interface DashboardData {
@@ -200,26 +201,103 @@ function EmptyState({ text }: { text: string }) {
   );
 }
 
+// ─── Chart Loading Placeholder ───
+function ChartPlaceholder() {
+  return (
+    <div className="flex items-center justify-center h-[200px] text-gray-300">
+      <Loader2 className="w-6 h-6 animate-spin" />
+    </div>
+  );
+}
+
+// ─── Lazy Chart Components ───
+function LazyPieChart({ data: pieData, height = 200 }: { data: { name: string; value: number; color: string }[]; height?: number }) {
+  if (!rechartsModule) return <ChartPlaceholder />;
+  const { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } = rechartsModule;
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <PieChart>
+        <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
+          {pieData.map((e, i) => <Cell key={i} fill={e.color} />)}
+        </Pie>
+        <Tooltip />
+        <Legend verticalAlign="bottom" wrapperStyle={{ fontSize: 11 }} />
+      </PieChart>
+    </ResponsiveContainer>
+  );
+}
+
+function LazyAreaChartComponent({ data: areaData }: { data: { month: string; documentos: number; demandas: number }[] }) {
+  if (!rechartsModule) return <ChartPlaceholder />;
+  const { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend } = rechartsModule;
+  return (
+    <ResponsiveContainer width="100%" height={240}>
+      <AreaChart data={areaData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+        <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+        <YAxis tick={{ fontSize: 11 }} />
+        <Tooltip />
+        <Legend wrapperStyle={{ fontSize: 11 }} />
+        <Area type="monotone" dataKey="documentos" stroke="#1E3A5F" fill="#1E3A5F" fillOpacity={0.15} strokeWidth={2} name="Documentos" />
+        <Area type="monotone" dataKey="demandas" stroke="#10B981" fill="#10B981" fillOpacity={0.15} strokeWidth={2} name="Demandas" />
+      </AreaChart>
+    </ResponsiveContainer>
+  );
+}
+
+function LazyBarChartComponent({ data: barData, dataKey, name, fillColor, colorByItem }: { data: any[]; dataKey: string; name: string; fillColor?: string; colorByItem?: boolean }) {
+  if (!rechartsModule) return <ChartPlaceholder />;
+  const { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } = rechartsModule;
+  return (
+    <ResponsiveContainer width="100%" height={240}>
+      <BarChart data={barData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+        <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+        <YAxis tick={{ fontSize: 11 }} />
+        <Tooltip />
+        <Bar dataKey={dataKey} radius={[6, 6, 0, 0]} name={name} fill={fillColor}>
+          {colorByItem && barData.map((e, i) => <Cell key={i} fill={e.color} />)}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+function LazyCompletionBarChart({ data: barData }: { data: { priority: string; rate: number }[] }) {
+  if (!rechartsModule) return <ChartPlaceholder />;
+  const { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } = rechartsModule;
+  return (
+    <ResponsiveContainer width="100%" height={200}>
+      <BarChart data={barData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+        <XAxis dataKey="priority" tick={{ fontSize: 10 }} />
+        <YAxis tick={{ fontSize: 10 }} domain={[0, 100]} />
+        <Tooltip formatter={(v: number) => `${v.toFixed(1)}%`} />
+        <Bar dataKey="rate" radius={[6, 6, 0, 0]} fill="#10B981" name="Taxa %" />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+// ─── SWR fetcher ───
+const fetcher = (url: string) => fetch(url).then((r) => { if (!r.ok) throw new Error("Failed"); return r.json(); });
+
 // ─── Main Component ───
 export default function DashboardClient({ userName, userRole }: { userName: string; userRole: string }) {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState(30);
+  const [chartsReady, setChartsReady] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await fetch(`/api/dashboard?period=${period}`);
-      if (!res.ok) throw new Error("Failed");
-      setData(await res.json());
-    } catch (e) {
-      console.error("Dashboard fetch error:", e);
-    } finally {
-      setLoading(false);
-    }
-  }, [period]);
+  // SWR with deduplication + stale-while-revalidate
+  const { data, isLoading: loading, mutate } = useSWR<DashboardData>(
+    `/api/dashboard?period=${period}`,
+    fetcher,
+    { dedupingInterval: 30_000, revalidateOnFocus: false, keepPreviousData: true }
+  );
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  // Load recharts asynchronously after first paint
+  useEffect(() => {
+    rechartsReady.then(() => setChartsReady(true));
+  }, []);
 
   if (loading || !data) {
     return (
@@ -296,7 +374,7 @@ export default function DashboardClient({ userName, userRole }: { userName: stri
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
           className="flex items-center gap-3"
         >
-          <button onClick={fetchData} disabled={loading}
+          <button onClick={() => mutate()} disabled={loading}
             className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors disabled:opacity-50"
             title="Atualizar dados"
           >
@@ -394,15 +472,7 @@ export default function DashboardClient({ userName, userRole }: { userName: stri
         >
           <SectionHeader title="Documentos por Status" icon={FileText} />
           {docPieData.length === 0 ? <EmptyState text="Nenhum documento" /> : (
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie data={docPieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
-                  {docPieData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                </Pie>
-                <Tooltip />
-                <Legend verticalAlign="bottom" wrapperStyle={{ fontSize: 11 }} />
-              </PieChart>
-            </ResponsiveContainer>
+            chartsReady ? <LazyPieChart data={docPieData} /> : <ChartPlaceholder />
           )}
         </motion.div>
 
@@ -411,15 +481,7 @@ export default function DashboardClient({ userName, userRole }: { userName: stri
         >
           <SectionHeader title="Demandas por Status" icon={Target} />
           {demandPieData.length === 0 ? <EmptyState text="Nenhuma demanda" /> : (
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie data={demandPieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
-                  {demandPieData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                </Pie>
-                <Tooltip />
-                <Legend verticalAlign="bottom" wrapperStyle={{ fontSize: 11 }} />
-              </PieChart>
-            </ResponsiveContainer>
+            chartsReady ? <LazyPieChart data={demandPieData} /> : <ChartPlaceholder />
           )}
         </motion.div>
 
@@ -428,15 +490,7 @@ export default function DashboardClient({ userName, userRole }: { userName: stri
         >
           <SectionHeader title="Assinaturas" icon={FileSignature} />
           {sigPieData.length === 0 ? <EmptyState text="Nenhuma assinatura" /> : (
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie data={sigPieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
-                  {sigPieData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                </Pie>
-                <Tooltip />
-                <Legend verticalAlign="bottom" wrapperStyle={{ fontSize: 11 }} />
-              </PieChart>
-            </ResponsiveContainer>
+            chartsReady ? <LazyPieChart data={sigPieData} /> : <ChartPlaceholder />
           )}
         </motion.div>
       </div>
@@ -448,17 +502,7 @@ export default function DashboardClient({ userName, userRole }: { userName: stri
         >
           <SectionHeader title="Evolução Mensal" icon={TrendingUp} />
           {areaData.length === 0 ? <EmptyState text="Sem dados mensais" /> : (
-            <ResponsiveContainer width="100%" height={240}>
-              <AreaChart data={areaData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Area type="monotone" dataKey="documentos" stroke="#1E3A5F" fill="#1E3A5F" fillOpacity={0.15} strokeWidth={2} name="Documentos" />
-                <Area type="monotone" dataKey="demandas" stroke="#10B981" fill="#10B981" fillOpacity={0.15} strokeWidth={2} name="Demandas" />
-              </AreaChart>
-            </ResponsiveContainer>
+            chartsReady ? <LazyAreaChartComponent data={areaData} /> : <ChartPlaceholder />
           )}
         </motion.div>
 
@@ -467,17 +511,7 @@ export default function DashboardClient({ userName, userRole }: { userName: stri
         >
           <SectionHeader title="Demandas por Prioridade" icon={AlertTriangle} />
           {priorityData.length === 0 ? <EmptyState text="Sem dados" /> : (
-            <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={priorityData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Bar dataKey="value" radius={[6, 6, 0, 0]} name="Demandas">
-                  {priorityData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            chartsReady ? <LazyBarChartComponent data={priorityData} dataKey="value" name="Demandas" colorByItem /> : <ChartPlaceholder />
           )}
         </motion.div>
       </div>
@@ -489,15 +523,7 @@ export default function DashboardClient({ userName, userRole }: { userName: stri
         >
           <SectionHeader title="Editais por Status" icon={Gavel} />
           {bidPieData.length === 0 ? <EmptyState text="Nenhum edital" /> : (
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie data={bidPieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
-                  {bidPieData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                </Pie>
-                <Tooltip />
-                <Legend verticalAlign="bottom" wrapperStyle={{ fontSize: 11 }} />
-              </PieChart>
-            </ResponsiveContainer>
+            chartsReady ? <LazyPieChart data={bidPieData} /> : <ChartPlaceholder />
           )}
         </motion.div>
 
@@ -506,15 +532,7 @@ export default function DashboardClient({ userName, userRole }: { userName: stri
         >
           <SectionHeader title="Adesões" icon={Handshake} />
           {adhesionPieData.length === 0 ? <EmptyState text="Nenhuma adesão" /> : (
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie data={adhesionPieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
-                  {adhesionPieData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                </Pie>
-                <Tooltip />
-                <Legend verticalAlign="bottom" wrapperStyle={{ fontSize: 11 }} />
-              </PieChart>
-            </ResponsiveContainer>
+            chartsReady ? <LazyPieChart data={adhesionPieData} /> : <ChartPlaceholder />
           )}
         </motion.div>
 
@@ -523,15 +541,7 @@ export default function DashboardClient({ userName, userRole }: { userName: stri
         >
           <SectionHeader title="Conclusão por Prioridade" icon={CheckCircle2} />
           {data.demands.completionRateByPriority.length === 0 ? <EmptyState text="Sem dados" /> : (
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={data.demands.completionRateByPriority} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="priority" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} domain={[0, 100]} />
-                <Tooltip formatter={(v: number) => `${v.toFixed(1)}%`} />
-                <Bar dataKey="rate" radius={[6, 6, 0, 0]} fill="#10B981" name="Taxa %" />
-              </BarChart>
-            </ResponsiveContainer>
+            chartsReady ? <LazyCompletionBarChart data={data.demands.completionRateByPriority} /> : <ChartPlaceholder />
           )}
         </motion.div>
       </div>

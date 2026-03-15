@@ -693,12 +693,9 @@ export default function UsarModeloClient({ templateId }: UsarModeloClientProps) 
 
             {/* Document Body */}
             <div className={`flex-1 overflow-y-auto bg-gray-100 p-4 sm:p-6 ${previewFullscreen ? "" : "max-h-[75vh]"}`}>
-              <div className="relative mx-auto bg-white shadow-lg rounded-sm max-w-3xl" style={{ minHeight: "700px" }}>
+              <div className="flex flex-col mx-auto bg-white shadow-lg rounded-sm max-w-3xl" style={{ minHeight: "1123px" }}>
                 {template?.headerImage && (
-                  <img src={template.headerImage} alt="Cabeçalho" className="absolute top-0 left-0 w-full h-auto pointer-events-none select-none z-0" draggable={false} />
-                )}
-                {template?.footerImage && (
-                  <img src={template.footerImage} alt="Rodapé" className="absolute bottom-0 left-0 w-full h-auto pointer-events-none select-none z-0" draggable={false} />
+                  <img src={template.headerImage} alt="Cabeçalho" className="w-full h-auto pointer-events-none select-none flex-shrink-0" draggable={false} />
                 )}
                 {inlineEditing ? (
                   <div
@@ -706,23 +703,22 @@ export default function UsarModeloClient({ templateId }: UsarModeloClientProps) 
                     contentEditable
                     suppressContentEditableWarning
                     dangerouslySetInnerHTML={{ __html: preview }}
-                    className="relative z-10 outline-none px-10 min-h-[700px] text-gray-800 text-[14px] leading-relaxed"
+                    className="outline-none px-10 py-8 flex-1 text-gray-800 text-[14px] leading-relaxed"
                     style={{
                       fontFamily: "'Times New Roman', 'Georgia', serif",
-                      paddingTop: template?.headerImage ? "200px" : "32px",
-                      paddingBottom: template?.footerImage ? "200px" : "32px",
                     }}
                   />
                 ) : (
                   <div
-                    className="relative z-10 px-10 min-h-[700px] text-gray-800 text-[14px] leading-relaxed"
+                    className="px-10 py-8 flex-1 text-gray-800 text-[14px] leading-relaxed"
                     style={{
                       fontFamily: "'Times New Roman', 'Georgia', serif",
-                      paddingTop: template?.headerImage ? "200px" : "32px",
-                      paddingBottom: template?.footerImage ? "200px" : "32px",
                     }}
                     dangerouslySetInnerHTML={{ __html: preview }}
                   />
+                )}
+                {template?.footerImage && (
+                  <img src={template.footerImage} alt="Rodapé" className="w-full h-auto pointer-events-none select-none flex-shrink-0 mt-auto" draggable={false} />
                 )}
               </div>
             </div>

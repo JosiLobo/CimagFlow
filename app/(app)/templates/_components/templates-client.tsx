@@ -95,6 +95,7 @@ export default function TemplatesClient() {
     try {
       const reader = new FileReader();
       reader.onload = () => {
+        if (createEditorRef.current) setCreateEditorContent(createEditorRef.current.innerHTML);
         setHeaderImage(reader.result as string);
         setUploadingHeader(false);
       };
@@ -113,6 +114,7 @@ export default function TemplatesClient() {
     try {
       const reader = new FileReader();
       reader.onload = () => {
+        if (createEditorRef.current) setCreateEditorContent(createEditorRef.current.innerHTML);
         setFooterImage(reader.result as string);
         setUploadingFooter(false);
       };
@@ -424,7 +426,7 @@ export default function TemplatesClient() {
                       <div className="w-7 h-7 rounded border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center" title="Cabeçalho">
                         <img src={headerImage} alt="Cabeçalho" className="w-full h-full object-contain" />
                       </div>
-                      <button onClick={() => setHeaderImage(null)} title="Remover cabeçalho"
+                      <button onClick={() => { if (createEditorRef.current) setCreateEditorContent(createEditorRef.current.innerHTML); setHeaderImage(null); }} title="Remover cabeçalho"
                         className="p-0.5 text-red-400 hover:text-red-600 rounded transition-colors">
                         <X className="w-3 h-3" />
                       </button>
@@ -443,7 +445,7 @@ export default function TemplatesClient() {
                       <div className="w-7 h-7 rounded border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center" title="Rodapé">
                         <img src={footerImage} alt="Rodapé" className="w-full h-full object-contain" />
                       </div>
-                      <button onClick={() => setFooterImage(null)} title="Remover rodapé"
+                      <button onClick={() => { if (createEditorRef.current) setCreateEditorContent(createEditorRef.current.innerHTML); setFooterImage(null); }} title="Remover rodapé"
                         className="p-0.5 text-red-400 hover:text-red-600 rounded transition-colors">
                         <X className="w-3 h-3" />
                       </button>
@@ -559,28 +561,26 @@ export default function TemplatesClient() {
               <div className="flex-1 overflow-hidden flex">
                 {/* Document Area */}
                 <div className="flex-1 overflow-y-auto bg-gray-100 p-4 sm:p-8">
-                  <div className="relative mx-auto bg-white shadow-lg rounded-sm max-w-3xl" style={{ minHeight: "800px" }}>
+                  <div className="flex flex-col mx-auto bg-white shadow-lg rounded-sm max-w-3xl" style={{ minHeight: "1123px" }}>
                     {headerImage && (
-                      <img src={headerImage} alt="Cabeçalho" className="absolute top-0 left-0 w-full h-auto pointer-events-none select-none z-0" draggable={false} />
-                    )}
-                    {footerImage && (
-                      <img src={footerImage} alt="Rodapé" className="absolute bottom-0 left-0 w-full h-auto pointer-events-none select-none z-0" draggable={false} />
+                      <img src={headerImage} alt="Cabeçalho" className="w-full h-auto pointer-events-none select-none flex-shrink-0" draggable={false} />
                     )}
                     <div
                       ref={createEditorRef}
                       contentEditable
                       suppressContentEditableWarning
                       dangerouslySetInnerHTML={{ __html: createEditorContent }}
-                      className="relative z-10 outline-none px-12 min-h-[800px] text-gray-800 text-[14px] leading-relaxed"
+                      className="outline-none px-12 py-8 flex-1 text-gray-800 text-[14px] leading-relaxed"
                       style={{
                         fontFamily: "'Times New Roman', 'Georgia', serif",
-                        paddingTop: headerImage ? "200px" : "40px",
-                        paddingBottom: footerImage ? "200px" : "40px",
                       }}
                       onMouseUp={saveCreateSelection}
                       onKeyUp={saveCreateSelection}
                       data-placeholder="Comece a digitar o conteúdo do contrato aqui... Use o painel de variáveis para inserir campos dinâmicos como {prefeitura}, {empresa}, etc."
                     />
+                    {footerImage && (
+                      <img src={footerImage} alt="Rodapé" className="w-full h-auto pointer-events-none select-none flex-shrink-0 mt-auto" draggable={false} />
+                    )}
                   </div>
                 </div>
 
@@ -844,14 +844,11 @@ export default function TemplatesClient() {
               {/* Editor Body */}
               <div className="flex-1 overflow-hidden flex">
                 {/* Document Area */}
-                <div className={`flex-1 overflow-y-auto bg-gray-100 ${previewEditing ? "p-4 sm:p-8" : "p-4 sm:p-8"}`}>
-                  <div className={`relative mx-auto bg-white shadow-lg rounded-sm ${editorFullscreen ? "max-w-4xl" : "max-w-3xl"}`}
-                    style={{ minHeight: "800px" }}>
+                <div className="flex-1 overflow-y-auto bg-gray-100 p-4 sm:p-8">
+                  <div className={`flex flex-col mx-auto bg-white shadow-lg rounded-sm ${editorFullscreen ? "max-w-4xl" : "max-w-3xl"}`}
+                    style={{ minHeight: "1123px" }}>
                     {showPreview?.headerImage && (
-                      <img src={showPreview.headerImage} alt="Cabeçalho" className="absolute top-0 left-0 w-full h-auto pointer-events-none select-none z-0" draggable={false} />
-                    )}
-                    {showPreview?.footerImage && (
-                      <img src={showPreview.footerImage} alt="Rodapé" className="absolute bottom-0 left-0 w-full h-auto pointer-events-none select-none z-0" draggable={false} />
+                      <img src={showPreview.headerImage} alt="Cabeçalho" className="w-full h-auto pointer-events-none select-none flex-shrink-0" draggable={false} />
                     )}
                     {previewEditing ? (
                       <div
@@ -859,11 +856,9 @@ export default function TemplatesClient() {
                         contentEditable
                         suppressContentEditableWarning
                         dangerouslySetInnerHTML={{ __html: previewContent }}
-                        className="relative z-10 outline-none px-12 min-h-[800px] text-gray-800 text-[14px] leading-relaxed"
+                        className="outline-none px-12 py-8 flex-1 text-gray-800 text-[14px] leading-relaxed"
                         style={{
                           fontFamily: "'Times New Roman', 'Georgia', serif",
-                          paddingTop: showPreview?.headerImage ? "200px" : "40px",
-                          paddingBottom: showPreview?.footerImage ? "200px" : "40px",
                         }}
                         onMouseUp={savePreviewSelection}
                         onKeyUp={savePreviewSelection}
@@ -875,14 +870,15 @@ export default function TemplatesClient() {
                       />
                     ) : (
                       <div
-                        className="relative z-10 px-12 min-h-[800px] text-gray-800 text-[14px] leading-relaxed whitespace-pre-wrap"
+                        className="px-12 py-8 flex-1 text-gray-800 text-[14px] leading-relaxed whitespace-pre-wrap"
                         style={{
                           fontFamily: "'Times New Roman', 'Georgia', serif",
-                          paddingTop: showPreview?.headerImage ? "200px" : "40px",
-                          paddingBottom: showPreview?.footerImage ? "200px" : "40px",
                         }}
                         dangerouslySetInnerHTML={{ __html: previewContent.replace(/\{([^}]+)\}/g, '<span style="background:#dbeafe;color:#1e40af;padding:1px 4px;border-radius:4px;font-weight:600">{$1}</span>') }}
                       />
+                    )}
+                    {showPreview?.footerImage && (
+                      <img src={showPreview.footerImage} alt="Rodapé" className="w-full h-auto pointer-events-none select-none flex-shrink-0 mt-auto" draggable={false} />
                     )}
                   </div>
                 </div>
