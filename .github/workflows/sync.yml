@@ -15,7 +15,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Sincronizar com o Original
-        uses: tgymnich/fork-sync@v1.10
+        uses: tgymnich/fork-sync@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           owner: framil09      # Usuário atualizado
