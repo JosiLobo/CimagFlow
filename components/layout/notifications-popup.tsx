@@ -19,6 +19,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -72,6 +73,7 @@ const NOTIFICATION_STYLES: Record<string, { bg: string; icon: string; accent: st
 export default function NotificationsPopup({ isOpen, onClose, unreadCount, onUpdate, collapsed = false, position = "sidebar" }: NotificationsPopupProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     if (isOpen) {
@@ -132,6 +134,31 @@ export default function NotificationsPopup({ isOpen, onClose, unreadCount, onUpd
 
   function getIcon(type: string) {
     return NOTIFICATION_ICONS[type] || NOTIFICATION_ICONS.DEFAULT;
+  }
+
+  function handleNotificationClick(notification: Notification) {
+    if (!notification.read) markAsRead(notification.id);
+    const target = notification.link || getDefaultLink(notification.type);
+    if (target) {
+      onClose();
+      router.push(target);
+    }
+  }
+
+  function getDefaultLink(type: string): string | null {
+    switch (type) {
+      case "DOCUMENT_SIGNED":
+      case "DOCUMENT_PENDING":
+      case "DOCUMENT_CANCELLED":
+        return "/documentos";
+      case "DEMAND_NEW":
+      case "DEMAND_UPDATE":
+      case "DEMAND_RESPONSE":
+      case "DEMANDA_ATRIBUIDA":
+        return "/demandas";
+      default:
+        return "/notificacoes";
+    }
   }
 
   if (!isOpen) return null;
@@ -225,6 +252,7 @@ export default function NotificationsPopup({ isOpen, onClose, unreadCount, onUpd
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.04 }}
+                        onClick={() => handleNotificationClick(notification)}
                         className={`px-4 py-3.5 border-l-[3px] ${style.accent} hover:bg-gray-50/80 transition-all cursor-pointer group ${
                           !notification.read ? "bg-blue-50/40" : "border-l-transparent"
                         } ${index < notifications.length - 1 ? "border-b border-gray-100" : ""}`}
