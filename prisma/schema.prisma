@@ -28,6 +28,7 @@ enum SignerStatus {
 enum SignerType {
   FORNECEDOR
   PREFEITO
+  PRESIDENTE
   JURIDICO
   TESTEMUNHA
   OUTRO

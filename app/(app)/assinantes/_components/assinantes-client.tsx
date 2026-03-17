@@ -4,9 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Users, Plus, Search, Edit2, Trash2, X, Check, Loader2, User, Mail, Phone, Building2 } from "lucide-react";
 
-const TYPES = ["OUTRO", "FORNECEDOR", "PREFEITO", "JURIDICO", "TESTEMUNHA"];
+const TYPES = ["PRESIDENTE", "PREFEITO", "JURIDICO", "TESTEMUNHA", "FORNECEDOR", "OUTRO"];
 const typeLabels: Record<string, string> = {
-  OUTRO: "Outro", FORNECEDOR: "Fornecedor", PREFEITO: "Prefeito", JURIDICO: "Jurídico", TESTEMUNHA: "Testemunha"
+  PRESIDENTE: "Presidente", PREFEITO: "Prefeito", JURIDICO: "Jurídico", TESTEMUNHA: "Testemunha", FORNECEDOR: "Fornecedor", OUTRO: "Outro"
 };
 
 const emptyForm = { name: "", email: "", phone: "", cpf: "", type: "OUTRO", municipality: "", company: "", isActive: true };

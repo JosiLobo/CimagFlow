@@ -106,7 +106,8 @@ export default function FileUpload({
           throw new Error(error.error || 'Erro ao gerar URL de upload');
         }
 
-        const { uploadUrl, cloud_storage_path } = await presignedRes.json();
+        const presignedData = await presignedRes.json();
+        const { uploadUrl, cloud_storage_path, fileUrl } = presignedData;
 
         // Upload para S3
         const uploadRes = await fetch(uploadUrl, {
@@ -121,10 +122,13 @@ export default function FileUpload({
           throw new Error('Erro ao fazer upload do arquivo');
         }
 
+        // Usar fileUrl (URL pública) se disponível, senão usar cloud_storage_path
+        const finalUrl = fileUrl || cloud_storage_path;
+
         // Adicionar à lista
         const newFile: UploadedFile = {
           fileName: file.name,
-          cloud_storage_path,
+          cloud_storage_path: finalUrl,
           size: file.size,
           type: file.type,
         };

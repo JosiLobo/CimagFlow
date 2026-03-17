@@ -3,7 +3,16 @@
 import { useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, FileText, Users, Settings, ChevronRight, ChevronLeft, Check, X, Search, Loader2, Wand2, FolderOpen, Sparkles, ArrowRight } from "lucide-react";
+import { Upload, FileText, Users, Settings, ChevronRight, ChevronLeft, Check, X, Search, Loader2, Wand2, FolderOpen, ArrowRight } from "lucide-react";
+
+const TYPE_LABELS: Record<string, { label: string; color: string; bg: string }> = {
+  PRESIDENTE: { label: "Presidente", color: "text-amber-700", bg: "bg-amber-100" },
+  PREFEITO: { label: "Prefeito", color: "text-amber-700", bg: "bg-amber-100" },
+  JURIDICO: { label: "Jurídico", color: "text-blue-700", bg: "bg-blue-100" },
+  TESTEMUNHA: { label: "Testemunha", color: "text-purple-700", bg: "bg-purple-100" },
+  FORNECEDOR: { label: "Fornecedor", color: "text-emerald-700", bg: "bg-emerald-100" },
+  OUTRO: { label: "Outro", color: "text-gray-700", bg: "bg-gray-100" },
+};
 
 const steps = [
   { id: 1, label: "Documento", icon: FileText },
@@ -86,29 +95,74 @@ export default function NovoDocumentoClient() {
   const handleSubmit = async (andSend: boolean) => {
     setSubmitting(true);
     try {
+      // Validação dos assinantes obrigatórios
+      if (andSend) {
+        const tipos = selectedSigners.map((s) => s.type);
+        const temPresidente = tipos.includes("PRESIDENTE") || tipos.includes("PREFEITO");
+        if (!temPresidente) {
+          alert("É obrigatório adicionar o Presidente como assinante.");
+          setSubmitting(false);
+          return;
+        }
+      }
+
+      const payload = {
+        title,
+        description: description || null,
+        fileUrl: uploadedPath || null,
+        fileName: file?.name || null,
+        fileSize: file?.size || null,
+        message: message || null,
+        deadline: deadline || null,
+        reminderDays,
+        signerIds: selectedSigners.map((s) => s.id),
+        folderId: folderId || null,
+      };
+
+      console.log("Enviando documento:", payload);
+
       const res = await fetch("/api/documents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title, description: description || null, fileUrl: uploadedPath || null,
-          fileName: file?.name || null, fileSize: file?.size || null,
-          message: message || null, deadline: deadline || null, reminderDays,
-          signerIds: selectedSigners.map((s) => s.id),
-          folderId: folderId || null,
-        }),
+        body: JSON.stringify(payload),
       });
+
+      console.log("Resposta:", res.status, res.statusText);
+
+      // Verificar se a resposta é JSON (pode ser redirect de autenticação)
+      const contentType = res.headers.get("content-type");
+      if (!contentType?.includes("application/json")) {
+        const text = await res.text();
+        console.error("Resposta não-JSON:", text.substring(0, 200));
+        alert("Erro de autenticação. Faça login novamente.");
+        return;
+      }
+
       const data = await res.json();
-      if (!res.ok) { alert(data.error ?? "Erro ao criar documento"); return; }
+      console.log("Dados:", data);
+
+      if (!res.ok) {
+        alert(data.error ?? "Erro ao criar documento");
+        return;
+      }
+
       if (andSend && selectedSigners.length > 0) {
+        console.log("Enviando para assinatura...");
         await fetch(`/api/documents/${data.document.id}/send`, { method: "POST" });
       }
+
       // Se foi criado a partir de uma pasta, volta para a pasta
       if (folderId) {
         router.push(`/pastas`);
       } else {
         router.push(`/documentos/${data.document.id}`);
       }
-    } finally { setSubmitting(false); }
+    } catch (err) {
+      console.error("Erro ao salvar documento:", err);
+      alert("Erro ao salvar documento. Verifique o console para mais detalhes.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -271,33 +325,55 @@ export default function NovoDocumentoClient() {
             </div>
             {signerResults.length > 0 && (
               <div className="border border-gray-200 rounded-xl overflow-hidden">
-                {signerResults.map((s) => (
-                  <button key={s.id} onClick={() => addSigner(s)}
-                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-left border-b last:border-b-0 border-gray-100">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-[#1E3A5F] font-semibold text-sm">
-                      {s.name?.charAt(0)?.toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">{s.name}</p>
-                      <p className="text-xs text-gray-400">{s.email}</p>
-                    </div>
-                  </button>
-                ))}
+                {signerResults.map((s) => {
+                  const typeInfo = TYPE_LABELS[s.type] || TYPE_LABELS.OUTRO;
+                  return (
+                    <button key={s.id} onClick={() => addSigner(s)}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-left border-b last:border-b-0 border-gray-100">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-[#1E3A5F] font-semibold text-sm">
+                        {s.name?.charAt(0)?.toUpperCase()}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{s.name}</p>
+                        <p className="text-xs text-gray-400">{s.email}</p>
+                      </div>
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${typeInfo.bg} ${typeInfo.color}`}>
+                        {typeInfo.label}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             )}
             {selectedSigners.length > 0 ? (
-              <div className="space-y-2">
-                {selectedSigners.map((s, i) => (
-                  <div key={s.id} className="flex items-center gap-3 bg-blue-50 rounded-xl px-4 py-3">
-                    <div className="w-7 h-7 bg-[#1E3A5F] rounded-full flex items-center justify-center text-white font-bold text-xs">{i + 1}</div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{s.name}</p>
-                      <p className="text-xs text-gray-500">{s.email}</p>
-                    </div>
-                    <button onClick={() => removeSigner(s.id)} className="text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
-                  </div>
-                ))}
-              </div>
+              <>
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
+                  <strong>Ordem de assinatura:</strong> O Presidente/Prefeito assina primeiro. Após sua assinatura, todos os demais são liberados para assinar simultaneamente.
+                </div>
+                <div className="space-y-2">
+                  {selectedSigners.map((s) => {
+                    const typeInfo = TYPE_LABELS[s.type] || TYPE_LABELS.OUTRO;
+                    const isPresidente = s.type === "PRESIDENTE" || s.type === "PREFEITO";
+                    return (
+                      <div key={s.id} className={`flex items-center gap-3 rounded-xl px-4 py-3 ${isPresidente ? "bg-amber-50 border border-amber-200" : "bg-blue-50"}`}>
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${isPresidente ? "bg-amber-500 text-white" : "bg-[#1E3A5F] text-white"}`}>
+                          {isPresidente ? "1º" : "2º"}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium">{s.name}</p>
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${typeInfo.bg} ${typeInfo.color}`}>
+                              {typeInfo.label}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500">{s.email}</p>
+                        </div>
+                        <button onClick={() => removeSigner(s.id)} className="text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
             ) : (
               <div className="text-center py-8 text-gray-400">
                 <Users className="w-10 h-10 mx-auto mb-2 opacity-30" />

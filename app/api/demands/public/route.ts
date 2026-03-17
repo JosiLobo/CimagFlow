@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
       nextNumber = lastNumber + 1;
     }
 
-    const protocolNumber = `${currentYear}${nextNumber.toString().padStart(6, "0")}`;
+    const protocolNumber = `${currentYear}-${nextNumber.toString().padStart(6, "0")}`;
 
     // Criar demanda
     const demand = await prisma.demand.create({

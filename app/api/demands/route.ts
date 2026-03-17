@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
     const lastDemand = await prisma.demand.findFirst({
       where: {
         protocolNumber: {
-          startsWith: `${year}`,
+          startsWith: `${year}-`,
         },
       },
       orderBy: { protocolNumber: "desc" },

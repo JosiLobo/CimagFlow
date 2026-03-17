@@ -15,9 +15,22 @@ interface AuditLogParams {
 
 export async function createAuditLog(params: AuditLogParams) {
   try {
+    // Verificar se o userId existe no banco antes de criar o log
+    // IDs hardcoded (como "hardcoded-admin") não existem na tabela users
+    let validUserId = params.userId;
+    if (validUserId) {
+      const userExists = await prisma.user.findUnique({
+        where: { id: validUserId },
+        select: { id: true },
+      });
+      if (!userExists) {
+        validUserId = undefined; // Não vincular a um user inexistente
+      }
+    }
+
     await prisma.auditLog.create({
       data: {
-        userId: params.userId,
+        userId: validUserId,
         userName: params.userName,
         action: params.action,
         entity: params.entity,
@@ -29,7 +42,7 @@ export async function createAuditLog(params: AuditLogParams) {
       },
     });
   } catch (error) {
-    console.error("Erro ao criar log de auditoria:", error);
+    console.error("Erro ao criar log de auditoria: - audit.ts:45", error);
   }
 }
 

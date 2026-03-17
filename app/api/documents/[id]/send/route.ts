@@ -14,7 +14,10 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const doc = await prisma.document.findUnique({
       where: { id: params.id },
       include: {
-        signers: { include: { signer: true } },
+        signers: {
+          include: { signer: true },
+          orderBy: { order: "asc" },
+        },
         creator: { select: { name: true } },
       },
     });
@@ -28,10 +31,15 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     });
 
     const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-    const emailPromises = doc.signers.map(async (ds: any) => {
-      const signLink = `${baseUrl}/assinar/${ds.token}`;
+
+    // Enviar email apenas para o primeiro assinante (presidente/order=0)
+    // Os demais serão notificados conforme a ordem quando o anterior assinar
+    const firstSigner = doc.signers[0];
+
+    if (firstSigner) {
+      const signLink = `${baseUrl}/assinar/${firstSigner.token}`;
       const html = buildSignatureEmail({
-        signerName: ds.signer.name,
+        signerName: firstSigner.signer.name,
         documentTitle: doc.title,
         creatorName: doc.creator.name,
         message: doc.message ?? undefined,
@@ -39,15 +47,17 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         deadline: doc.deadline ? new Date(doc.deadline).toLocaleDateString("pt-BR") : undefined,
       });
 
-      await sendEmail({
-        to: ds.signer.email,
-        subject: `✍️ Documento para assinar: ${doc.title}`,
-        html,
-        notificationId: process.env.NOTIF_ID_DOCUMENTO_ENVIADO_PARA_ASSINATURA ?? "",
-      });
-    });
-
-    await Promise.allSettled(emailPromises);
+      try {
+        await sendEmail({
+          to: firstSigner.signer.email,
+          subject: `✍️ Documento para assinar: ${doc.title}`,
+          html,
+          notificationId: process.env.NOTIF_ID_DOCUMENTO_ENVIADO_PARA_ASSINATURA ?? "",
+        });
+      } catch (emailError) {
+        console.error("Erro ao enviar email para primeiro assinante: - route.ts:58", emailError);
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

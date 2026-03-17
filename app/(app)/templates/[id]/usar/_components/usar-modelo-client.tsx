@@ -246,7 +246,7 @@ export default function UsarModeloClient({ templateId }: UsarModeloClientProps) 
     setSaving(true);
     try {
       // Se está editando inline, pegar o conteúdo diretamente do editor
-      let finalVariables = variables;
+      const finalVariables = variables;
       let customContent: string | undefined;
       
       if (inlineEditing && documentRef.current) {
@@ -339,6 +339,8 @@ export default function UsarModeloClient({ templateId }: UsarModeloClientProps) 
           <div>
             <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-amber-500" />
+                            <Sparkles className="w-5 h-5 text-amber-500" />
+                <AlertCircle className="w-12 h-12 mx-auto text-red-500 mb-4" />
               Usar Modelo
             </h1>
             <p className="text-gray-500 text-sm">{template.name}</p>
@@ -371,6 +373,7 @@ export default function UsarModeloClient({ templateId }: UsarModeloClientProps) 
               <button onClick={resetVariables}
                 className="text-xs text-gray-400 hover:text-red-500 flex items-center gap-1 transition-colors">
                 <RefreshCw className="w-3 h-3" /> Resetar
+                              <RefreshCw className="w-3 h-3" /> Resetar
               </button>
             </div>
             
@@ -386,6 +389,7 @@ export default function UsarModeloClient({ templateId }: UsarModeloClientProps) 
                 className="w-4 h-4 text-[#1E3A5F] rounded border-gray-300 focus:ring-[#1E3A5F]" />
               <span className="text-xs text-gray-600 flex items-center gap-1">
                 <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Preenchimento automático
+                              <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Preenchimento automático
               </span>
             </label>
           </div>
@@ -394,6 +398,7 @@ export default function UsarModeloClient({ templateId }: UsarModeloClientProps) 
           <div className="bg-gradient-to-br from-blue-50/80 to-indigo-50/80 rounded-2xl shadow-sm border border-blue-100 p-5 space-y-3">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-blue-600" />
+                            <Sparkles className="w-4 h-4 text-blue-600" />
               <h3 className="font-semibold text-gray-900 text-sm">Preenchimento Automático</h3>
             </div>
             <p className="text-xs text-gray-500">Selecione entidades para preencher automaticamente.</p>
@@ -403,6 +408,7 @@ export default function UsarModeloClient({ templateId }: UsarModeloClientProps) 
               <div className="bg-white/70 rounded-xl p-3 border border-blue-100/80">
                 <label className="text-xs font-medium text-gray-600 mb-1.5 flex items-center gap-1.5">
                   <FileCode2 className="w-3.5 h-3.5 text-blue-600" /> Edital
+                                  <FileCode2 className="w-3.5 h-3.5 text-blue-600" /> Edital
                 </label>
                 <select value={selectedBid} onChange={e => setSelectedBid(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 bg-white">
@@ -421,6 +427,7 @@ export default function UsarModeloClient({ templateId }: UsarModeloClientProps) 
               <div className="bg-white/70 rounded-xl p-3 border border-blue-100/80">
                 <label className="text-xs font-medium text-gray-600 mb-1.5 flex items-center gap-1.5">
                   <Landmark className="w-3.5 h-3.5 text-blue-600" /> Prefeitura
+                                  <Landmark className="w-3.5 h-3.5 text-blue-600" /> Prefeitura
                 </label>
                 <select value={selectedPrefecture} onChange={e => setSelectedPrefecture(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 bg-white">
@@ -437,6 +444,7 @@ export default function UsarModeloClient({ templateId }: UsarModeloClientProps) 
               <div className="bg-white/70 rounded-xl p-3 border border-blue-100/80">
                 <label className="text-xs font-medium text-gray-600 mb-1.5 flex items-center gap-1.5">
                   <Building2 className="w-3.5 h-3.5 text-blue-600" /> Empresa
+                                  <Building2 className="w-3.5 h-3.5 text-blue-600" /> Empresa
                 </label>
                 <select value={selectedCompany} onChange={e => setSelectedCompany(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 bg-white">
@@ -453,6 +461,7 @@ export default function UsarModeloClient({ templateId }: UsarModeloClientProps) 
               <div className="bg-white/70 rounded-xl p-3 border border-blue-100/80">
                 <label className="text-xs font-medium text-gray-600 mb-1.5 flex items-center gap-1.5">
                   <FolderOpen className="w-3.5 h-3.5 text-blue-600" /> Pasta
+                                    <FolderOpen className="w-3.5 h-3.5 text-blue-600" /> Pasta
                   {selectedPrefecture && filteredFolders.length < folders.length && (
                     <span className="text-[10px] text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded-full">Filtrado</span>
                   )}
@@ -467,6 +476,7 @@ export default function UsarModeloClient({ templateId }: UsarModeloClientProps) 
                 {selectedPrefecture && filteredFolders.length === 0 && (
                   <p className="text-[10px] text-amber-600 mt-1.5 flex items-center gap-1">
                     <AlertCircle className="w-3 h-3" /> Nenhuma pasta para esta prefeitura
+                                      <AlertCircle className="w-3 h-3" /> Nenhuma pasta para esta prefeitura
                   </p>
                 )}
               </div>
@@ -477,6 +487,7 @@ export default function UsarModeloClient({ templateId }: UsarModeloClientProps) 
               <div className="bg-white/70 rounded-xl p-3 border border-emerald-100/80">
                 <label className="text-xs font-medium text-gray-600 mb-1.5 flex items-center gap-1.5">
                   <ClipboardList className="w-3.5 h-3.5 text-emerald-600" /> Vincular à Demanda
+                                    <ClipboardList className="w-3.5 h-3.5 text-emerald-600" /> Vincular à Demanda
                   <span className="text-[10px] text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-full">Opcional</span>
                 </label>
                 <select value={selectedDemand} onChange={e => setSelectedDemand(e.target.value)}
@@ -491,6 +502,7 @@ export default function UsarModeloClient({ templateId }: UsarModeloClientProps) 
                 {selectedDemand && (
                   <p className="text-[10px] text-emerald-600 mt-1.5 flex items-center gap-1">
                     <Check className="w-3 h-3" /> O solicitante será notificado por e-mail
+                                      <Check className="w-3 h-3" /> O solicitante será notificado por e-mail
                   </p>
                 )}
               </div>
@@ -503,6 +515,7 @@ export default function UsarModeloClient({ templateId }: UsarModeloClientProps) 
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
                   <FileText className="w-4 h-4 text-gray-600" /> Campos do Modelo
+                                  <FileText className="w-4 h-4 text-gray-600" /> Campos do Modelo
                 </h3>
                 <span className="text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
                   {filledVars}/{totalVars}
@@ -516,6 +529,7 @@ export default function UsarModeloClient({ templateId }: UsarModeloClientProps) 
                     <div key={varName} className={`relative ${isFilled ? 'ring-1 ring-emerald-200' : ''} rounded-lg`}>
                       <label className="text-[10px] text-gray-400 mb-0.5 flex items-center gap-1">
                         {isFilled && <Check className="w-2.5 h-2.5 text-emerald-500" />}
+                                                {isFilled && <Check className="w-2.5 h-2.5 text-emerald-500" />}
                         <code className="bg-gray-50 px-1 rounded text-[10px]">{`{${varName}}`}</code>
                       </label>
                       <input type="text" value={variables[varName] || ""}
@@ -538,6 +552,7 @@ export default function UsarModeloClient({ templateId }: UsarModeloClientProps) 
                 className="w-full flex items-center justify-between text-sm font-medium text-gray-700 hover:text-[#1E3A5F] transition-colors">
                 <span className="flex items-center gap-2">
                   <Users className="w-4 h-4" /> Assinantes
+                                    <Users className="w-4 h-4" /> Assinantes
                   {selectedSigners.length > 0 && (
                     <span className="bg-emerald-100 text-emerald-700 text-[10px] px-2 py-0.5 rounded-full font-semibold">
                       {selectedSigners.length}
@@ -545,6 +560,7 @@ export default function UsarModeloClient({ templateId }: UsarModeloClientProps) 
                   )}
                 </span>
                 {showSigners ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                              {showSigners ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
               
               <AnimatePresence>
@@ -575,11 +591,13 @@ export default function UsarModeloClient({ templateId }: UsarModeloClientProps) 
             <button onClick={() => handleSubmit(false)} disabled={saving}
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 shadow-sm">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               Salvar Rascunho
             </button>
             <button onClick={() => handleSubmit(true)} disabled={saving || selectedSigners.length === 0}
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-[#1E3A5F] text-white rounded-xl text-sm font-medium hover:bg-[#2a4a73] transition-colors disabled:opacity-50 shadow-lg">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               Criar e Enviar
             </button>
           </div>
@@ -635,18 +653,15 @@ export default function UsarModeloClient({ templateId }: UsarModeloClientProps) 
             {inlineEditing && (
               <div className="flex items-center gap-0.5 px-3 py-2 border-b border-gray-200 bg-white overflow-x-auto shrink-0">
                 <div className="flex items-center gap-0.5 pr-2 border-r border-gray-200 mr-2">
-                  <button onClick={() => execCmd("undo")} title="Desfazer"
-                    className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition-colors">
+                  <button onClick={() => execCmd("undo")} title="Desfazer" className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition-colors">
                     <Undo2 className="w-3.5 h-3.5" />
                   </button>
-                  <button onClick={() => execCmd("redo")} title="Refazer"
-                    className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition-colors">
+                  <button onClick={() => execCmd("redo")} title="Refazer" className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition-colors">
                     <Redo2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
                 <div className="flex items-center gap-0.5 pr-2 border-r border-gray-200 mr-2">
-                  <select onChange={(e) => { execCmd("fontSize", e.target.value); e.target.value = ""; }}
-                    defaultValue="" className="text-xs border border-gray-200 rounded px-1 py-1 text-gray-600 focus:outline-none">
+                  <select onChange={(e) => { execCmd("fontSize", e.target.value); e.target.value = ""; }} defaultValue="" className="text-xs border border-gray-200 rounded px-1 py-1 text-gray-600 focus:outline-none">
                     <option value="" disabled>Tamanho</option>
                     <option value="1">Pequeno</option>
                     <option value="3">Normal</option>
@@ -655,47 +670,39 @@ export default function UsarModeloClient({ templateId }: UsarModeloClientProps) 
                   </select>
                 </div>
                 <div className="flex items-center gap-0.5 pr-2 border-r border-gray-200 mr-2">
-                  <button onClick={() => execCmd("bold")} title="Negrito"
-                    className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition-colors">
+                  <button onClick={() => execCmd("bold")} title="Negrito" className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition-colors">
                     <Bold className="w-3.5 h-3.5" />
                   </button>
-                  <button onClick={() => execCmd("italic")} title="Itálico"
-                    className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition-colors">
+                  <button onClick={() => execCmd("italic")} title="Itálico" className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition-colors">
                     <Italic className="w-3.5 h-3.5" />
                   </button>
-                  <button onClick={() => execCmd("underline")} title="Sublinhado"
-                    className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition-colors">
+                  <button onClick={() => execCmd("underline")} title="Sublinhado" className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition-colors">
                     <Underline className="w-3.5 h-3.5" />
                   </button>
                 </div>
                 <div className="flex items-center gap-0.5 pr-2 border-r border-gray-200 mr-2">
-                  <button onClick={() => execCmd("justifyLeft")} title="Esquerda"
-                    className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition-colors">
+                  <button onClick={() => execCmd("justifyLeft")} title="Esquerda" className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition-colors">
                     <AlignLeft className="w-3.5 h-3.5" />
                   </button>
-                  <button onClick={() => execCmd("justifyCenter")} title="Centro"
-                    className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition-colors">
+                  <button onClick={() => execCmd("justifyCenter")} title="Centro" className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition-colors">
                     <AlignCenter className="w-3.5 h-3.5" />
                   </button>
-                  <button onClick={() => execCmd("justifyRight")} title="Direita"
-                    className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition-colors">
+                  <button onClick={() => execCmd("justifyRight")} title="Direita" className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition-colors">
                     <AlignRight className="w-3.5 h-3.5" />
                   </button>
-                  <button onClick={() => execCmd("justifyFull")} title="Justificar"
-                    className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition-colors">
+                  <button onClick={() => execCmd("justifyFull")} title="Justificar" className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition-colors">
                     <AlignJustify className="w-3.5 h-3.5" />
                   </button>
                 </div>
-                <input type="color" onChange={(e) => execCmd("foreColor", e.target.value)} defaultValue="#000000"
-                  title="Cor" className="w-6 h-6 rounded cursor-pointer border border-gray-200" />
+                <input type="color" onChange={(e) => execCmd("foreColor", e.target.value)} defaultValue="#000000" title="Cor" className="w-6 h-6 rounded cursor-pointer border border-gray-200" />
               </div>
             )}
 
             {/* Document Body */}
             <div className={`flex-1 overflow-y-auto bg-gray-100 p-4 sm:p-6 ${previewFullscreen ? "" : "max-h-[75vh]"}`}>
               <div className="flex flex-col mx-auto bg-white shadow-lg rounded-sm max-w-3xl" style={{ minHeight: "1123px" }}>
-                {template?.headerImage && (
-                  <img key="header-img" src={template.headerImage} alt="Cabeçalho" className="w-full h-auto pointer-events-none select-none flex-shrink-0" draggable={false} />
+                {template.headerImage && (
+                  <img key="header-img" src={template.headerImage} alt="Cabeçalho" className="w-full h-auto pointer-events-none select-none flex-shrink-0" draggable={false} loading="lazy" />
                 )}
                 {inlineEditing ? (
                   <div
@@ -718,8 +725,8 @@ export default function UsarModeloClient({ templateId }: UsarModeloClientProps) 
                     dangerouslySetInnerHTML={{ __html: preview }}
                   />
                 )}
-                {template?.footerImage && (
-                  <img src={template.footerImage} alt="Rodapé" className="w-full h-auto pointer-events-none select-none flex-shrink-0 mt-auto" draggable={false} />
+                {template.footerImage && (
+                  <img src={template.footerImage} alt="Rodapé" className="w-full h-auto pointer-events-none select-none flex-shrink-0 mt-auto" draggable={false} loading="lazy" />
                 )}
               </div>
             </div>

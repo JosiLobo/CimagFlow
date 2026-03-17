@@ -41,7 +41,7 @@ export async function GET(
 
     return NextResponse.json(demand);
   } catch (error: any) {
-    console.error("Erro ao buscar demanda:", error);
+    console.error("Erro ao buscar demanda: - route.ts:44", error);
     return NextResponse.json(
       { error: "Erro ao buscar demanda" },
       { status: 500 }
@@ -67,6 +67,7 @@ export async function PATCH(
       priority,
       status,
       assignedToId,
+      prefectureId,
       dueDate,
       internalNotes,
       resolution,
@@ -98,6 +99,7 @@ export async function PATCH(
       }
     }
     if (assignedToId !== undefined) updateData.assignedToId = assignedToId;
+    if (prefectureId !== undefined) updateData.prefectureId = prefectureId;
     if (dueDate !== undefined) updateData.dueDate = dueDate ? new Date(dueDate) : null;
     if (internalNotes !== undefined) updateData.internalNotes = internalNotes;
     if (resolution !== undefined) updateData.resolution = resolution;
@@ -159,7 +161,7 @@ export async function PATCH(
             `,
           });
         } catch (emailError) {
-          console.error("Erro ao enviar email:", emailError);
+          console.error("Erro ao enviar email: - route.ts:164", emailError);
         }
       }
 
@@ -183,7 +185,7 @@ export async function PATCH(
             `,
           });
         } catch (emailError) {
-          console.error("Erro ao enviar email para prefeitura:", emailError);
+          console.error("Erro ao enviar email para prefeitura: - route.ts:188", emailError);
         }
       }
     }
@@ -289,7 +291,7 @@ export async function PATCH(
               `,
             });
           } catch (emailError) {
-            console.error("Erro ao enviar email de prazo:", emailError);
+            console.error("Erro ao enviar email de prazo: - route.ts:294", emailError);
           }
         }
       }
@@ -316,7 +318,7 @@ export async function PATCH(
 
     return NextResponse.json(demand);
   } catch (error: any) {
-    console.error("Erro ao atualizar demanda:", error);
+    console.error("Erro ao atualizar demanda: - route.ts:321", error);
     return NextResponse.json(
       { error: "Erro ao atualizar demanda" },
       { status: 500 }
@@ -346,6 +348,12 @@ export async function DELETE(
       );
     }
 
+    // Desvincular documentos associados antes de deletar
+    await prisma.document.updateMany({
+      where: { demandId: params.id },
+      data: { demandId: null },
+    });
+
     await prisma.demand.delete({
       where: { id: params.id },
     });
@@ -364,7 +372,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error("Erro ao deletar demanda:", error);
+    console.error("Erro ao deletar demanda: - route.ts:375", error);
     return NextResponse.json(
       { error: "Erro ao deletar demanda" },
       { status: 500 }

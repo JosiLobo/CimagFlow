@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 // In-memory cache with TTL
 let cachedData: { data: any; period: number; timestamp: number } | null = null;
-const CACHE_TTL = 60_000; // 1 minute
+const CACHE_TTL = 300_000; // 5 minutes
 
 export async function GET(req: NextRequest) {
   try {
@@ -118,7 +118,7 @@ export async function GET(req: NextRequest) {
       prisma.demand.findMany({
         where: { status: "CONCLUIDA", resolvedAt: { not: null } },
         select: { createdAt: true, resolvedAt: true },
-        take: 200,
+        take: 100, // menor para menos processamento
         orderBy: { resolvedAt: "desc" },
       }),
       prisma.$queryRaw`
@@ -133,7 +133,7 @@ export async function GET(req: NextRequest) {
       ` as Promise<{ month: Date; count: bigint }[]>,
       prisma.auditLog.findMany({
         orderBy: { createdAt: "desc" },
-        take: 10,
+        take: 5, // menos logs
         select: { id: true, action: true, entity: true, entityName: true, createdAt: true, userName: true, user: { select: { name: true } } },
       }),
     ]);
@@ -147,7 +147,7 @@ export async function GET(req: NextRequest) {
       prisma.document.findMany({
         where: isAdmin ? {} : { createdBy: userId },
         orderBy: { createdAt: "desc" },
-        take: 8,
+        take: 5, // menos documentos recentes
         select: {
           id: true, title: true, status: true, createdAt: true,
           signers: { select: { status: true } },
@@ -155,7 +155,7 @@ export async function GET(req: NextRequest) {
       }),
       prisma.demand.findMany({
         orderBy: { createdAt: "desc" },
-        take: 8,
+        take: 5, // menos demandas recentes
         select: {
           id: true, title: true, status: true, priority: true, protocolNumber: true, createdAt: true,
           prefecture: { select: { name: true } },

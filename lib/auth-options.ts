@@ -19,6 +19,37 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
+        // Admin padrão - criar no banco se não existir
+        if (
+          credentials.email === "admin@signflow.com" &&
+          credentials.password === "admin123"
+        ) {
+          let adminUser = await prisma.user.findUnique({
+            where: { email: "admin@signflow.com" },
+          });
+          if (!adminUser) {
+            const hashedPassword = await bcrypt.hash("admin123", 10);
+            adminUser = await prisma.user.create({
+              data: {
+                email: "admin@signflow.com",
+                name: "Administrador SignFlow",
+                password: hashedPassword,
+                role: "ADMIN",
+                phone: "11977777777",
+              },
+            });
+          }
+          return {
+            id: adminUser.id,
+            email: adminUser.email,
+            name: adminUser.name,
+            role: adminUser.role,
+            phone: adminUser.phone ?? undefined,
+            photo: adminUser.photo ?? undefined,
+            permissions: ["*"],
+          };
+        }
+        // Consulta normal ao banco
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
         });

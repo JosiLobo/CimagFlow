@@ -16,13 +16,15 @@ export default withAuth(
           pathname.startsWith("/nova-solicitacao") ||
           pathname.startsWith("/consulta-protocolo") ||
           pathname.startsWith("/responder-demanda") ||
+          pathname.startsWith("/atas-publicas") ||
           pathname.startsWith("/api/auth") ||
           pathname.startsWith("/api/signup") ||
           pathname.startsWith("/api/sign") ||
           pathname.startsWith("/api/demands/public") ||
           pathname.startsWith("/api/demands/protocol") ||
           pathname.startsWith("/api/upload/presigned-public") ||
-          pathname.startsWith("/api/prefectures")
+          pathname.startsWith("/api/prefectures") ||
+          pathname.startsWith("/api/public")
         ) {
           return true;
         }
@@ -33,5 +35,5 @@ export default withAuth(
 );
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon|og-image|public).*))"],
+  matcher: ["/((?!_next/static|_next/image|favicon|og-image|public).*)"],
 };

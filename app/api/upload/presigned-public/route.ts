@@ -47,14 +47,20 @@ export async function POST(req: Request) {
       true // isPublic
     );
 
+    // Gerar URL pública do arquivo para acesso direto
+    const bucketName = process.env.AWS_BUCKET_NAME || "";
+    const region = process.env.AWS_REGION || "us-east-1";
+    const fileUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${cloud_storage_path}`;
+
     return NextResponse.json({
       uploadUrl,
       cloud_storage_path,
+      fileUrl,
       fileName,
     });
 
   } catch (error) {
-    console.error("Erro ao gerar URL de upload público:", error);
+    console.error("Erro ao gerar URL de upload público: - route.ts:63", error);
     return NextResponse.json(
       { error: "Erro ao gerar URL de upload" },
       { status: 500 }
