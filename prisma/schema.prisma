@@ -140,8 +140,8 @@ model Template {
   description String?
   content     String   @db.Text
   variables   String[] @default([])
-  headerImage String?
-  footerImage String?
+  headerImage String?  @db.Text
+  footerImage String?  @db.Text
   createdBy   String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

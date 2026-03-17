@@ -6,11 +6,29 @@ import { sendEmail } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
+// Helper para resolver o userId real do banco
+async function resolveUserId(session: any): Promise<string | null> {
+  const sessionId = session.user?.id;
+  if (sessionId) {
+    const user = await prisma.user.findUnique({ where: { id: sessionId }, select: { id: true } });
+    if (user) return user.id;
+  }
+  const email = session.user?.email;
+  if (email) {
+    const user = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+    if (user) return user.id;
+  }
+  return null;
+}
+
 // GET - Buscar template e dados relacionados para o formulário
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+
+    const userId = await resolveUserId(session);
+    if (!userId) return NextResponse.json({ error: "Sessão inválida. Faça logout e login novamente." }, { status: 401 });
 
     const [template, prefectures, companies, bids, folders, signers, demands] = await Promise.all([
       prisma.template.findUnique({ where: { id: params.id } }),
@@ -18,7 +36,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       prisma.company.findMany({ orderBy: { name: "asc" } }),
       prisma.bid.findMany({ include: { prefecture: true }, orderBy: { createdAt: "desc" } }),
       prisma.folder.findMany({ 
-        where: { createdBy: (session.user as any).id }, 
+        where: { createdBy: userId }, 
         include: { prefecture: { select: { id: true, name: true, city: true, state: true } } },
         orderBy: { name: "asc" } 
       }),
@@ -45,7 +63,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
-    const userId = (session.user as any).id;
+    const userId = await resolveUserId(session);
+    if (!userId) return NextResponse.json({ error: "Sessão inválida. Faça logout e login novamente." }, { status: 401 });
+
     const body = await req.json();
     const { title, variables, customContent, folderId, signerIds, sendAfterCreate, demandId } = body;
 

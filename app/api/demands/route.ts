@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import prisma from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
 import { sendEmail } from "@/lib/email";
+import { resolveUserId } from "@/lib/resolve-user";
 
 // GET - Listar todas as demandas
 export async function GET(req: NextRequest) {
@@ -47,7 +48,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(demands);
   } catch (error: any) {
-    console.error("Erro ao buscar demandas:", error);
+    console.error("Erro ao buscar demandas: - route.ts:51", error);
     return NextResponse.json(
       { error: "Erro ao buscar demandas" },
       { status: 500 }
@@ -62,6 +63,9 @@ export async function POST(req: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
+
+    const userId = await resolveUserId(session);
+    if (!userId) return NextResponse.json({ error: "Sessão inválida. Faça logout e login novamente." }, { status: 401 });
 
     const body = await req.json();
     const {
@@ -122,7 +126,7 @@ export async function POST(req: NextRequest) {
         assignedToId,
         dueDate: dueDate ? new Date(dueDate) : undefined,
         attachments: attachments || [],
-        createdBy: (session.user as any).id,
+        createdBy: userId,
       },
       include: {
         prefecture: true,
@@ -145,7 +149,7 @@ export async function POST(req: NextRequest) {
 
     // Log de auditoria
     await createAuditLog({
-      userId: (session.user as any).id,
+      userId,
       userName: session.user.name || "Usuário",
       action: "CREATE",
       entity: "Demand",
@@ -176,7 +180,7 @@ export async function POST(req: NextRequest) {
         `,
       });
     } catch (emailError) {
-      console.error("Erro ao enviar email:", emailError);
+      console.error("Erro ao enviar email: - route.ts:183", emailError);
     }
 
     // Notificar usuário atribuído, se existir
@@ -194,7 +198,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(demand, { status: 201 });
   } catch (error: any) {
-    console.error("Erro ao criar demanda:", error);
+    console.error("Erro ao criar demanda: - route.ts:201", error);
     return NextResponse.json(
       { error: "Erro ao criar demanda" },
       { status: 500 }

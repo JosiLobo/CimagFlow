@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import prisma from "@/lib/db";
+import { resolveUserId } from "@/lib/resolve-user";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,8 @@ export async function GET(req: Request) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
-    const userId = (session.user as any).id;
+    const userId = await resolveUserId(session);
+    if (!userId) return NextResponse.json({ error: "Sessão inválida. Faça logout e login novamente." }, { status: 401 });
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
     const search = searchParams.get("search");
@@ -36,7 +38,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ documents: docs, total, page, limit });
   } catch (error) {
-    console.error("GET /api/documents - route.ts:39", error);
+    console.error("GET /api/documents - route.ts:41", error);
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
 }
@@ -46,7 +48,8 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
-    const userId = (session.user as any).id;
+    const userId = await resolveUserId(session);
+    if (!userId) return NextResponse.json({ error: "Sessão inválida. Faça logout e login novamente." }, { status: 401 });
     const body = await req.json();
     const { title, description, fileUrl, fileName, fileSize, message, deadline, reminderDays, signerIds, folderId } = body;
 
@@ -107,7 +110,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ document }, { status: 201 });
   } catch (error: any) {
-    console.error("POST /api/documents - route.ts:110", error?.message, error?.stack);
+    console.error("POST /api/documents - route.ts:113", error?.message, error?.stack);
     return NextResponse.json({ error: error?.message || "Erro interno" }, { status: 500 });
   }
 }

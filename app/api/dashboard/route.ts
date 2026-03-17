@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import prisma from "@/lib/db";
+import { resolveUserId } from "@/lib/resolve-user";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ export async function GET(req: NextRequest) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - periodDays);
 
-    const userId = (session.user as any).id;
+    const userId = await resolveUserId(session) || (session.user as any).id;
     const userRole = (session.user as any).role;
     const isAdmin = userRole === "ADMIN";
     const userEmail = session.user?.email ?? "";
@@ -252,7 +253,7 @@ export async function GET(req: NextRequest) {
       headers: { "Cache-Control": "private, max-age=30" },
     });
   } catch (error) {
-    console.error("Erro ao buscar dashboard:", error);
+    console.error("Erro ao buscar dashboard: - route.ts:256", error);
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
 }

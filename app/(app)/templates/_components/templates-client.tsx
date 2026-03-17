@@ -209,18 +209,33 @@ export default function TemplatesClient() {
 
   const handleSave = async () => {
     const content = createEditorRef.current ? createEditorRef.current.innerHTML : form.content;
-    if (!form.name || !content || content === "<br>") { alert("Nome e conteúdo obrigatórios"); return; }
+    const cleanContent = content?.replace(/<br\s*\/?>/gi, "").replace(/&nbsp;/g, "").trim();
+    if (!form.name || !cleanContent) { alert("Nome e conteúdo obrigatórios"); return; }
     setSaving(true);
     const vars = [...new Set([...form.variables, ...extractVars(content)])];
     try {
       const url = editId ? `/api/templates/${editId}` : "/api/templates";
       const method = editId ? "PATCH" : "POST";
+      const payload = { name: form.name, description: form.description, content, variables: vars, headerImage, footerImage };
+      console.log("[Templates] Saving template, payload size:", JSON.stringify(payload).length, "bytes");
       const res = await fetch(url, {
         method, headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: form.name, description: form.description, content, variables: vars, headerImage, footerImage }),
+        body: JSON.stringify(payload),
       });
       if (res.ok) { setShowModal(false); fetchTemplates(); }
-      else { const d = await res.json(); alert(d.error ?? "Erro ao salvar"); }
+      else {
+        let errorMsg = "Erro ao salvar";
+        try {
+          const d = await res.json();
+          errorMsg = d.error ?? errorMsg;
+        } catch {
+          errorMsg = `Erro ${res.status}: ${res.statusText}`;
+        }
+        alert(errorMsg);
+      }
+    } catch (err: unknown) {
+      console.error("[Templates] Save error:", err);
+      alert("Erro de conexão ao salvar o modelo. Verifique o console.");
     } finally { setSaving(false); }
   };
 
