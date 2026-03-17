@@ -61,10 +61,15 @@ export async function GET(req: NextRequest) {
     // ─── Batch 1: All counts + groupBys in parallel ───
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    
+    // Período anterior para comparação
+    const previousPeriodStart = new Date(startDate);
+    previousPeriodStart.setDate(previousPeriodStart.getDate() - periodDays);
+    const previousPeriodEnd = new Date(startDate);
 
     const [
-      totalDocuments, docsByStatus, docsInPeriod,
-      totalDemands, demandsByStatus, demandsByPriority, demandsInPeriod, demandsCompletedInPeriod,
+      totalDocuments, docsByStatus, docsInPeriod, docsInPreviousPeriod,
+      totalDemands, demandsByStatus, demandsByPriority, demandsInPeriod, demandsCompletedInPeriod, demandsInPreviousPeriod,
       totalBids, bidsByStatus,
       totalPrefectures, activePrefectures,
       totalCompanies, activeCompanies,
@@ -83,11 +88,13 @@ export async function GET(req: NextRequest) {
       prisma.document.count(),
       prisma.document.groupBy({ by: ["status"], _count: true }),
       prisma.document.count({ where: { createdAt: { gte: startDate } } }),
+      prisma.document.count({ where: { createdAt: { gte: previousPeriodStart, lt: previousPeriodEnd } } }),
       prisma.demand.count(),
       prisma.demand.groupBy({ by: ["status"], _count: true }),
       prisma.demand.groupBy({ by: ["priority"], _count: true }),
       prisma.demand.count({ where: { createdAt: { gte: startDate } } }),
       prisma.demand.count({ where: { status: "CONCLUIDA", resolvedAt: { gte: startDate } } }),
+      prisma.demand.count({ where: { createdAt: { gte: previousPeriodStart, lt: previousPeriodEnd } } }),
       prisma.bid.count(),
       prisma.bid.groupBy({ by: ["status"], _count: true }),
       prisma.prefecture.count(),
@@ -188,10 +195,18 @@ export async function GET(req: NextRequest) {
       .map((p) => ({ prefecture: prefInfos.find((i) => i.id === p.prefectureId), count: p._count }))
       .filter((p) => p.prefecture);
 
+    // Calcular variações percentuais
+    const docsPeriodGrowth = docsInPreviousPeriod > 0 
+      ? Math.round(((docsInPeriod - docsInPreviousPeriod) / docsInPreviousPeriod) * 100) 
+      : 0;
+    const demandsPeriodGrowth = demandsInPreviousPeriod > 0
+      ? Math.round(((demandsInPeriod - demandsInPreviousPeriod) / demandsInPreviousPeriod) * 100)
+      : 0;
+
     const responseData = {
       overview: {
-        documents: { total: totalDocuments, period: docsInPeriod },
-        demands: { total: totalDemands, period: demandsInPeriod, completed: demandsCompletedInPeriod },
+        documents: { total: totalDocuments, period: docsInPeriod, previousPeriod: docsInPreviousPeriod, growth: docsPeriodGrowth },
+        demands: { total: totalDemands, period: demandsInPeriod, completed: demandsCompletedInPeriod, previousPeriod: demandsInPreviousPeriod, growth: demandsPeriodGrowth },
         bids: totalBids,
         prefectures: { total: totalPrefectures, active: activePrefectures },
         companies: { total: totalCompanies, active: activeCompanies },
