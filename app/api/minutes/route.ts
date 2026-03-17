@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import prisma from "@/lib/db";
+import { auditLog } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -128,6 +129,17 @@ export async function POST(request: NextRequest) {
         prefecture: true,
         bid: { select: { id: true, number: true, title: true } },
       },
+    });
+
+    const user = session.user as any;
+    await auditLog(request, {
+      userId: user.id,
+      userName: user.name || user.email,
+      action: "CREATE",
+      entity: "minute",
+      entityId: minute.id,
+      entityName: `${minute.number} - ${minute.title}`,
+      details: `Ata criada: ${minute.number} - ${minute.title}, Tipo: ${minute.type}, Status: ${minute.status}`,
     });
 
     return NextResponse.json(minute, { status: 201 });

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import prisma from "@/lib/db";
 import { resolveUserId } from "@/lib/resolve-user";
+import { auditLog } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -107,6 +108,17 @@ export async function POST(req: Request) {
 
       await prisma.documentSigner.createMany({ data: signerData });
     }
+
+    const user = session.user as any;
+    await auditLog(req as any, {
+      userId: user.id,
+      userName: user.name || user.email,
+      action: "CREATE",
+      entity: "document",
+      entityId: document.id,
+      entityName: document.title,
+      details: `Documento criado: ${document.title}, Status: ${document.status}${signerIds?.length > 0 ? `, Assinantes: ${signerIds.length}` : ""}`,
+    });
 
     return NextResponse.json({ document }, { status: 201 });
   } catch (error: any) {

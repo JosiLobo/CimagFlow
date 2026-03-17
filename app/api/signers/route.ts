@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import prisma from "@/lib/db";
+import { auditLog } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +54,17 @@ export async function POST(req: Request) {
 
     const signer = await prisma.signer.create({
       data: { name, email, phone: phone ?? null, cpf: cpf ?? null, type: type ?? "OUTRO", municipality: municipality ?? null, company: company ?? null },
+    });
+
+    const user = (session.user as any);
+    await auditLog(req as any, {
+      userId: user.id,
+      userName: user.name || user.email,
+      action: "CREATE",
+      entity: "signer",
+      entityId: signer.id,
+      entityName: signer.name,
+      details: `Assinante criado: ${signer.name} - ${signer.email}${signer.company ? `, Empresa: ${signer.company}` : ""}`,
     });
 
     return NextResponse.json({ signer }, { status: 201 });

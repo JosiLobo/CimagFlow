@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import prisma from "@/lib/db";
+import { auditLog } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +64,17 @@ export async function POST(request: NextRequest) {
       include: {
         prefecture: { select: { id: true, name: true, city: true, state: true } },
       },
+    });
+
+    const user = session.user as any;
+    await auditLog(request, {
+      userId: user.id,
+      userName: user.name || user.email,
+      action: "CREATE",
+      entity: "folder",
+      entityId: folder.id,
+      entityName: folder.name,
+      details: `Pasta criada: ${folder.name}${folder.prefecture ? ` - ${folder.prefecture.name}` : ""}`,
     });
 
     return NextResponse.json(folder, { status: 201 });

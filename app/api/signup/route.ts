@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/db";
+import { createAuditLog } from "@/lib/audit";
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -28,6 +29,21 @@ export async function POST(req: Request) {
         phone: phone ?? null,
         role: role ?? "COLABORADOR",
       },
+    });
+
+    // Registrar auditoria de criação de conta
+    const forwardedFor = req.headers.get("x-forwarded-for");
+    const ip = forwardedFor?.split(",")?.[0] ?? req.headers.get("x-real-ip") ?? req.headers.get("cf-connecting-ip") ?? "unknown";
+    await createAuditLog({
+      userId: user.id,
+      userName: user.name,
+      action: "CREATE",
+      entity: "user",
+      entityId: user.id,
+      entityName: `${user.name} - ${user.email}`,
+      details: `Conta criada: ${user.name} - ${user.email}, Perfil: ${user.role}`,
+      ipAddress: ip,
+      userAgent: req.headers.get("user-agent") || "unknown",
     });
 
     return NextResponse.json({ success: true, id: user.id }, { status: 201 });

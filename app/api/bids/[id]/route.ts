@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import prisma from "@/lib/db";
+import { auditLog } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +64,18 @@ export async function PATCH(
       },
     });
 
+    // Auditoria
+    const user = session.user as any;
+    await auditLog(request, {
+      userId: user.id,
+      userName: user.name || user.email,
+      action: "UPDATE",
+      entity: "bid",
+      entityId: bid.id,
+      entityName: bid.number + " - " + bid.title,
+      details: `Edital atualizado: ${bid.number} - ${bid.title}`,
+    });
+
     return NextResponse.json(bid);
   } catch (error) {
     console.error("Error updating bid:", error);
@@ -80,7 +93,27 @@ export async function DELETE(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
+    // Buscar dados antes de deletar para auditoria
+    const bid = await prisma.bid.findUnique({
+      where: { id: params.id },
+      select: { id: true, number: true, title: true },
+    });
+
     await prisma.bid.delete({ where: { id: params.id } });
+
+    // Auditoria
+    if (bid) {
+      const user = session.user as any;
+      await auditLog(request, {
+        userId: user.id,
+        userName: user.name || user.email,
+        action: "DELETE",
+        entity: "bid",
+        entityId: bid.id,
+        entityName: bid.number + " - " + bid.title,
+        details: `Edital excluído: ${bid.number} - ${bid.title}`,
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

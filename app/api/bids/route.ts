@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import prisma from "@/lib/db";
+import { auditLog } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -127,6 +128,18 @@ export async function POST(request: NextRequest) {
     });
 
     console.log("POST /api/bids: Edital criado com sucesso:", bid.id);
+    
+    // Auditoria
+    await auditLog(request, {
+      userId: user.id,
+      userName: user.name || user.email,
+      action: "CREATE",
+      entity: "bid",
+      entityId: bid.id,
+      entityName: bid.number + " - " + bid.title,
+      details: `Edital criado: ${bid.number} - ${bid.title}, Tipo: ${bid.type}, Status: ${bid.status}`,
+    });
+    
     return NextResponse.json(bid, { status: 201 });
   } catch (error) {
     console.error("POST /api/bids: Erro ao criar edital:", error);

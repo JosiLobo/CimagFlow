@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import prisma from "@/lib/db";
+import { auditLog } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -80,6 +81,18 @@ export async function POST(request: NextRequest) {
 
     const prefecture = await prisma.prefecture.create({
       data: { name, city, state, cnpj, address, phone, email, mayorName },
+    });
+
+    // Auditoria
+    const user = session.user as any;
+    await auditLog(request, {
+      userId: user.id,
+      userName: user.name || user.email,
+      action: "CREATE",
+      entity: "prefecture",
+      entityId: prefecture.id,
+      entityName: prefecture.name,
+      details: `Prefeitura criada: ${prefecture.name} - ${prefecture.city}/${prefecture.state}`,
     });
 
     return NextResponse.json(prefecture, { status: 201 });

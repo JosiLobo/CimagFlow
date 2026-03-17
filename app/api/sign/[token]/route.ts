@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { sendEmail, buildCompletedEmail, buildSignatureEmail } from "@/lib/email";
+import { createAuditLog } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -165,6 +166,21 @@ export async function POST(req: Request, { params }: { params: { token: string }
     await prisma.documentSigner.update({
       where: { token: params.token },
       data: updateData,
+    });
+
+    // Registrar auditoria de assinatura/recusa
+    await createAuditLog({
+      userId: ds.signer.id,
+      userName: ds.signer.name,
+      action: action === "sign" ? "SIGN" : "REFUSE",
+      entity: "document",
+      entityId: ds.document.id,
+      entityName: ds.document.title,
+      details: action === "sign" 
+        ? `Documento assinado: ${ds.document.title} por ${ds.signer.name}`
+        : `Documento recusado: ${ds.document.title} por ${ds.signer.name}`,
+      ipAddress: ip || "unknown",
+      userAgent: req.headers.get("user-agent") || "unknown",
     });
 
     const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";

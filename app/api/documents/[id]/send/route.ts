@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import prisma from "@/lib/db";
 import { sendEmail, buildSignatureEmail } from "@/lib/email";
+import { auditLog } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,18 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     await prisma.document.update({
       where: { id: params.id },
       data: { status: "EM_ANDAMENTO" },
+    });
+
+    // Registrar auditoria de envio de documento para assinatura
+    const user = session.user as any;
+    await auditLog(req as any, {
+      userId: user.id,
+      userName: user.name || user.email,
+      action: "SEND",
+      entity: "document",
+      entityId: doc.id,
+      entityName: doc.title,
+      details: `Documento enviado para assinatura: ${doc.title}, Assinantes: ${doc.signers.length}`,
     });
 
     const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import prisma from "@/lib/db";
 import bcrypt from "bcryptjs";
+import { auditLog } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -85,6 +86,17 @@ export async function POST(request: NextRequest) {
         isActive: true,
         createdAt: true,
       },
+    });
+
+    const admin = session.user as any;
+    await auditLog(request, {
+      userId: admin.id,
+      userName: admin.name || admin.email,
+      action: "CREATE",
+      entity: "user",
+      entityId: user.id,
+      entityName: user.name || user.email,
+      details: `Colaborador criado: ${user.name} - ${user.email}, Perfil: ${user.role}`,
     });
 
     return NextResponse.json(user, { status: 201 });

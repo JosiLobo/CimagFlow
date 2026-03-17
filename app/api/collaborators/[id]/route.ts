@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import prisma from "@/lib/db";
 import bcrypt from "bcryptjs";
+import { auditLog } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +46,17 @@ export async function PATCH(
       },
     });
 
+    const admin = session.user as any;
+    await auditLog(request, {
+      userId: admin.id,
+      userName: admin.name || admin.email,
+      action: "UPDATE",
+      entity: "user",
+      entityId: user.id,
+      entityName: user.name || user.email,
+      details: `Colaborador atualizado: ${user.name} - ${user.email}, Perfil: ${user.role}, Ativo: ${user.isActive}`,
+    });
+
     return NextResponse.json(user);
   } catch (error) {
     console.error("Error updating collaborator:", error);
@@ -68,7 +80,26 @@ export async function DELETE(
       return NextResponse.json({ error: "Você não pode excluir seu próprio usuário" }, { status: 400 });
     }
 
+    // Buscar colaborador antes de deletar para audit log
+    const user = await prisma.user.findUnique({
+      where: { id: params.id },
+      select: { id: true, name: true, email: true, role: true },
+    });
+
     await prisma.user.delete({ where: { id: params.id } });
+
+    if (user) {
+      const admin = session.user as any;
+      await auditLog(request, {
+        userId: admin.id,
+        userName: admin.name || admin.email,
+        action: "DELETE",
+        entity: "user",
+        entityId: user.id,
+        entityName: user.name || user.email,
+        details: `Colaborador excluído: ${user.name} - ${user.email}, Perfil: ${user.role}`,
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

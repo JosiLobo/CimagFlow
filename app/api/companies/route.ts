@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import prisma from "@/lib/db";
+import { auditLog } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -79,6 +80,18 @@ export async function POST(request: NextRequest) {
         isCredenciada: isCredenciada || false,
         bidId: bidId || null,
       },
+    });
+
+    // Auditoria
+    const user = session.user as any;
+    await auditLog(request, {
+      userId: user.id,
+      userName: user.name || user.email,
+      action: "CREATE",
+      entity: "company",
+      entityId: company.id,
+      entityName: company.name,
+      details: `Empresa criada: ${company.name}${cnpj ? ` (CNPJ: ${cnpj})` : ''}`,
     });
 
     return NextResponse.json(company, { status: 201 });

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import prisma from "@/lib/db";
+import { auditLog } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -66,6 +67,17 @@ export async function POST(req: Request) {
         const template = await prisma.template.create({
           data: { name, description: description ?? null, content, variables: variables ?? [], headerImage: headerImage ?? null, footerImage: footerImage ?? null, createdBy: userByEmail.id },
         });
+
+        await auditLog(req as any, {
+          userId: userByEmail.id,
+          userName: (session.user as any).name || (session.user as any).email,
+          action: "CREATE",
+          entity: "template",
+          entityId: template.id,
+          entityName: template.name,
+          details: `Template criado: ${template.name}`,
+        });
+
         return NextResponse.json({ template }, { status: 201 });
       }
       return NextResponse.json({ error: "Sessão inválida. Faça logout e login novamente." }, { status: 401 });
@@ -78,6 +90,16 @@ export async function POST(req: Request) {
 
     const template = await prisma.template.create({
       data: { name, description: description ?? null, content, variables: variables ?? [], headerImage: headerImage ?? null, footerImage: footerImage ?? null, createdBy: userId },
+    });
+
+    await auditLog(req as any, {
+      userId,
+      userName: (session.user as any).name || (session.user as any).email,
+      action: "CREATE",
+      entity: "template",
+      entityId: template.id,
+      entityName: template.name,
+      details: `Template criado: ${template.name}`,
     });
 
     return NextResponse.json({ template }, { status: 201 });

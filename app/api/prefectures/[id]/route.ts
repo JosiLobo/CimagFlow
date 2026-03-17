@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import prisma from "@/lib/db";
+import { auditLog } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -41,11 +42,22 @@ export async function PATCH(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
+    const user = session.user as any;
     const body = await request.json();
 
     const prefecture = await prisma.prefecture.update({
       where: { id: params.id },
       data: body,
+    });
+
+    await auditLog(request, {
+      userId: user.id,
+      userName: user.name || user.email,
+      action: "UPDATE",
+      entity: "prefecture",
+      entityId: prefecture.id,
+      entityName: `${prefecture.name} - ${prefecture.city}/${prefecture.state}`,
+      details: `Prefeitura atualizada: ${prefecture.name} - ${prefecture.city}/${prefecture.state}`,
     });
 
     return NextResponse.json(prefecture);
@@ -65,7 +77,26 @@ export async function DELETE(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
+    const user = session.user as any;
+
+    // Buscar prefeitura antes de deletar para audit log
+    const prefecture = await prisma.prefecture.findUnique({
+      where: { id: params.id },
+    });
+
     await prisma.prefecture.delete({ where: { id: params.id } });
+
+    if (prefecture) {
+      await auditLog(request, {
+        userId: user.id,
+        userName: user.name || user.email,
+        action: "DELETE",
+        entity: "prefecture",
+        entityId: prefecture.id,
+        entityName: `${prefecture.name} - ${prefecture.city}/${prefecture.state}`,
+        details: `Prefeitura excluída: ${prefecture.name} - ${prefecture.city}/${prefecture.state}`,
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
