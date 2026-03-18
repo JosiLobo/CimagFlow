@@ -298,6 +298,7 @@ export default function PastasClient() {
                           </div>
                         </div>
                       )}
+                      </div>
                   </motion.div>
                 ))}
               </div>
