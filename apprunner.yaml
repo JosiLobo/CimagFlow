@@ -1,0 +1,21 @@
+version: 1.0
+runtime: docker
+build:
+  commands:
+    build:
+      - docker build -t cimagflow .
+run:
+  runtime-version: docker
+  network:
+    port: 8080
+  env:
+    - name: NODE_ENV
+      value: "production"
+    - name: PORT
+      value: "8080"
+    # Configurar no console do App Runner (NÃO aqui):
+    # DATABASE_URL=postgresql://postgres:SenhaSuperSegura123@banco-sistema-editais.c27046k40f4u.us-east-1.rds.amazonaws.com:5432/postgres?schema=public
+    # NEXTAUTH_SECRET=Nl5zACbgf9ZMwcXEGSqYopfqH0ujc3Hd
+    # NEXTAUTH_URL=https://seu-dominio.awsapprunner.com
+    # AWS_REGION=us-east-1
+    # AWS_BUCKET_NAME=seu-bucket

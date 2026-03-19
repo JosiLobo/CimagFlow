@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { PDFParse } from "pdf-parse";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +23,7 @@ export async function POST(request: NextRequest) {
     // Try to extract text from the PDF content
     let pdfText = "";
     try {
+      const { PDFParse } = await import("pdf-parse");
       const buffer = Buffer.from(await file.arrayBuffer());
       const parser = new PDFParse({ data: buffer });
       const result = await parser.getText();

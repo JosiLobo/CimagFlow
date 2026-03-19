@@ -7,8 +7,10 @@ const nextConfig = {
     ignoreBuildErrors: false,
   },
   reactStrictMode: true,
+  output: 'standalone',
   compress: true,
   poweredByHeader: false,
+  serverExternalPackages: ['pdf-parse'],
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**.amazonaws.com' },

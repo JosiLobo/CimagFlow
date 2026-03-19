@@ -108,6 +108,7 @@ export default function EditaisClient() {
   const [fileSize, setFileSize] = useState<number | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [viewingBid, setViewingBid] = useState<Bid | null>(null);
 
   const fetchBids = useCallback(async () => {
     setLoading(true);
@@ -442,7 +443,8 @@ export default function EditaisClient() {
               key={bid.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-lg transition-all"
+              className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-lg transition-all cursor-pointer"
+              onClick={() => setViewingBid(bid)}
             >
               <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                 <div className="flex-1">
@@ -510,10 +512,10 @@ export default function EditaisClient() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => openEditModal(bid)} className="p-2 hover:bg-gray-100 rounded-lg">
+                  <button onClick={(e) => { e.stopPropagation(); openEditModal(bid); }} className="p-2 hover:bg-gray-100 rounded-lg">
                     <Edit2 className="w-5 h-5 text-gray-500" />
                   </button>
-                  <button onClick={() => handleDelete(bid.id)} className="p-2 hover:bg-red-100 rounded-lg">
+                  <button onClick={(e) => { e.stopPropagation(); handleDelete(bid.id); }} className="p-2 hover:bg-red-100 rounded-lg">
                     <Trash2 className="w-5 h-5 text-red-500" />
                   </button>
                 </div>
@@ -682,6 +684,131 @@ export default function EditaisClient() {
                   </div>
                 )}
               </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Detail View Modal */}
+      <AnimatePresence>
+        {viewingBid && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={() => setViewingBid(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <div>
+                  <div className="flex items-center gap-3 mb-1">
+                    <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-mono">{viewingBid.number}</span>
+                    {getStatusBadge(viewingBid.status)}
+                    <span className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded-lg text-xs">{getTypeLabel(viewingBid.type)}</span>
+                  </div>
+                  <h2 className="text-xl font-bold text-gray-900">{viewingBid.title}</h2>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => { setViewingBid(null); openEditModal(viewingBid); }}
+                    className="p-2 hover:bg-gray-100 rounded-lg" title="Editar"
+                  >
+                    <Edit2 className="w-5 h-5 text-gray-500" />
+                  </button>
+                  <button onClick={() => setViewingBid(null)} className="p-2 hover:bg-gray-100 rounded-lg">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Info */}
+              <div className="p-6 space-y-4">
+                {viewingBid.description && (
+                  <p className="text-gray-600">{viewingBid.description}</p>
+                )}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  {viewingBid.prefecture && (
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Building2 className="w-4 h-4 text-gray-400" />
+                      <span>{viewingBid.prefecture.name}</span>
+                    </div>
+                  )}
+                  {viewingBid.value && (
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <DollarSign className="w-4 h-4 text-gray-400" />
+                      <span>{formatCurrency(viewingBid.value)}</span>
+                    </div>
+                  )}
+                  {viewingBid.openingDate && (
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Calendar className="w-4 h-4 text-gray-400" />
+                      <span>Abertura: {format(new Date(viewingBid.openingDate), "dd/MM/yyyy", { locale: ptBR })}</span>
+                    </div>
+                  )}
+                  {viewingBid.closingDate && (
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Clock className="w-4 h-4 text-gray-400" />
+                      <span>Encerramento: {format(new Date(viewingBid.closingDate), "dd/MM/yyyy", { locale: ptBR })}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Document Viewer */}
+                {viewingBid.fileUrl ? (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Paperclip className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm font-medium text-gray-700">{viewingBid.fileName || "Documento do Edital"}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setPreviewUrl(viewingBid.fileUrl);
+                            setFormData(prev => ({ ...prev, fileName: viewingBid.fileName || "" }));
+                            setShowPreview(true);
+                          }}
+                          className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                        >
+                          <Eye className="w-3 h-3" /> Tela cheia
+                        </button>
+                        <a
+                          href={viewingBid.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-emerald-600 hover:underline flex items-center gap-1"
+                        >
+                          <Download className="w-3 h-3" /> Baixar
+                        </a>
+                      </div>
+                    </div>
+                    <iframe
+                      src={viewingBid.fileUrl}
+                      className="w-full h-[500px] border border-gray-200 rounded-xl bg-gray-50"
+                      title="Documento do Edital"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 text-gray-400 border-2 border-dashed border-gray-200 rounded-xl">
+                    <FileText className="w-12 h-12 mb-3" />
+                    <p className="text-sm">Nenhum documento anexado a este edital</p>
+                    <button
+                      onClick={() => { setViewingBid(null); openEditModal(viewingBid); }}
+                      className="mt-3 text-sm text-emerald-600 hover:underline flex items-center gap-1"
+                    >
+                      <Upload className="w-4 h-4" /> Anexar documento
+                    </button>
+                  </div>
+                )}
+              </div>
             </motion.div>
           </motion.div>
         )}
