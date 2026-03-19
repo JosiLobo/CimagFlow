@@ -155,7 +155,7 @@ export default function PastasClient() {
     setShowModal(true);
   };
 
-  const statusColors: Record<string, string> = {
+const statusColors: Record<string, string> = {
     RASCUNHO: "bg-gray-100 text-gray-700",
     EM_ANDAMENTO: "bg-yellow-100 text-yellow-700",
     CONCLUIDO: "bg-green-100 text-green-700",
@@ -179,19 +179,19 @@ export default function PastasClient() {
               Adicionar Contrato
             </Link>
           )}
-        {!isGestor && (
-          <button
-            onClick={() => {
-              setEditingFolder(null);
-              setFormData({ name: "", description: "", prefectureId: "" });
-              setShowModal(true);
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-colors"
-          >
-            <FolderPlus className="w-5 h-5" />
-            Nova Pasta
-          </button>
-        )}
+          {!isGestor && (
+            <button
+              onClick={() => {
+                setEditingFolder(null);
+                setFormData({ name: "", description: "", prefectureId: "" });
+                setShowModal(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-colors"
+            >
+              <FolderPlus className="w-5 h-5" />
+              Nova Pasta
+            </button>
+          )}
         </div>
       </div>
 
