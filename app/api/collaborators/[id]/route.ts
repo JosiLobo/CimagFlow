@@ -46,7 +46,7 @@ export async function PATCH(
       },
     });
 
-    const admin = session.user as any;
+    const admin = session?.user as any;
     await auditLog(request, {
       userId: admin.id,
       userName: admin.name || admin.email,
@@ -89,7 +89,7 @@ export async function DELETE(
     await prisma.user.delete({ where: { id: params.id } });
 
     if (user) {
-      const admin = session.user as any;
+      const admin = session?.user as any;
       await auditLog(request, {
         userId: admin.id,
         userName: admin.name || admin.email,
