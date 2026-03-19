@@ -62,13 +62,20 @@ export default function Sidebar({ userName, userRole, onCollapseChange }: Sideba
 
   const userPermissions: string[] = (session?.user as any)?.permissions ?? [];
   const isAdmin = userRole === "ADMIN";
+  const isGestor = userRole === "GESTOR";
 
-  const visibleNavItems = isAdmin
+  const visibleNavItems = (isAdmin || isGestor)
     ? navItems
     : navItems.filter((item) => {
         const moduleKey = item.href.replace("/", "");
         return userPermissions.includes(moduleKey);
       });
+
+  const visibleAdminItems = isAdmin
+    ? adminNavItems
+    : isGestor
+    ? adminNavItems.filter((item) => item.href !== "/colaboradores" && item.href !== "/audit-logs")
+    : [];
 
   useEffect(() => {
     onCollapseChange?.(collapsed);
@@ -134,8 +141,8 @@ export default function Sidebar({ userName, userRole, onCollapseChange }: Sideba
           );
         })}
         
-        {/* Admin Only Items */}
-        {userRole === "ADMIN" && (
+        {/* Admin / Gestor Items */}
+        {(userRole === "ADMIN" || userRole === "GESTOR") && visibleAdminItems.length > 0 && (
           <>
             <div className="my-2 border-t border-white/10" />
             <AnimatePresence>
@@ -150,7 +157,7 @@ export default function Sidebar({ userName, userRole, onCollapseChange }: Sideba
                 </motion.p>
               )}
             </AnimatePresence>
-            {adminNavItems.map((item) => {
+            {visibleAdminItems.map((item) => {
               const active = pathname === item.href || pathname.startsWith(item.href + "/");
               return (
                 <Link
@@ -193,7 +200,7 @@ export default function Sidebar({ userName, userRole, onCollapseChange }: Sideba
             {!collapsed && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 <p className="text-sm font-medium text-white truncate max-w-[140px]">{userName ?? "Usuário"}</p>
-                <p className="text-xs text-blue-300">{userRole === "ADMIN" ? "Administrador" : "Colaborador"}</p>
+                <p className="text-xs text-blue-300">{userRole === "ADMIN" ? "Administrador" : userRole === "GESTOR" ? "Gestor" : "Colaborador"}</p>
               </motion.div>
             )}
           </AnimatePresence>

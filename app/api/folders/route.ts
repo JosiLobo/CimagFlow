@@ -46,8 +46,13 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = (session.user as any).id;
+    const userRole = (session.user as any).role;
     const body = await request.json();
     const { name, description, parentId, prefectureId } = body;
+
+    if (userRole === "GESTOR") {
+      return NextResponse.json({ error: "Gestor não pode criar pastas" }, { status: 403 });
+    }
 
     if (!name) {
       return NextResponse.json({ error: "Nome é obrigatório" }, { status: 400 });

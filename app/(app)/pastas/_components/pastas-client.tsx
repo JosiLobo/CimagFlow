@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
+import { useSession } from "next-auth/react";
 
 interface Folder {
   id: string;
@@ -38,6 +39,10 @@ interface Document {
 }
 
 export default function PastasClient() {
+  const { data: session } = useSession();
+  const userRole = (session?.user as any)?.role;
+  const isGestor = userRole === "GESTOR";
+
   const [folders, setFolders] = useState<Folder[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [prefectures, setPrefectures] = useState<any[]>([]);
@@ -111,10 +116,11 @@ export default function PastasClient() {
     e.preventDefault();
     try {
       if (editingFolder) {
+        const patchData = isGestor ? { name: formData.name } : formData;
         await fetch(`/api/folders/${editingFolder.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(patchData),
         });
         toast.success("Pasta atualizada!");
       } else {
@@ -166,7 +172,7 @@ export default function PastasClient() {
           <p className="text-gray-500">Organize seus documentos em pastas</p>
         </div>
         <div className="flex items-center gap-3">
-          {currentFolderId && (
+          {currentFolderId && !isGestor && (
             <Link
               href={`/documentos/novo?folderId=${currentFolderId}`}
               className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors"
@@ -175,17 +181,19 @@ export default function PastasClient() {
               Adicionar Contrato
             </Link>
           )}
-          <button
-            onClick={() => {
-              setEditingFolder(null);
-              setFormData({ name: "", description: "", prefectureId: "" });
-              setShowModal(true);
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-colors"
-          >
-            <FolderPlus className="w-5 h-5" />
-            Nova Pasta
-          </button>
+          {!isGestor && (
+            <button
+              onClick={() => {
+                setEditingFolder(null);
+                setFormData({ name: "", description: "", prefectureId: "" });
+                setShowModal(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-colors"
+            >
+              <FolderPlus className="w-5 h-5" />
+              Nova Pasta
+            </button>
+          )}
         </div>
       </div>
 
@@ -279,15 +287,18 @@ export default function PastasClient() {
                           <button
                             onClick={() => openEditModal(folder)}
                             className="p-1.5 hover:bg-gray-100 rounded-lg"
+                            title={isGestor ? "Renomear" : "Editar"}
                           >
                             <Edit2 className="w-4 h-4 text-gray-500" />
                           </button>
-                          <button
-                            onClick={() => handleDelete(folder.id)}
-                            className="p-1.5 hover:bg-red-100 rounded-lg"
-                          >
-                            <Trash2 className="w-4 h-4 text-red-500" />
-                          </button>
+                          {!isGestor && (
+                            <button
+                              onClick={() => handleDelete(folder.id)}
+                              className="p-1.5 hover:bg-red-100 rounded-lg"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -357,7 +368,7 @@ export default function PastasClient() {
             >
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold">
-                  {editingFolder ? "Editar Pasta" : "Nova Pasta"}
+                  {isGestor && editingFolder ? "Renomear Pasta" : editingFolder ? "Editar Pasta" : "Nova Pasta"}
                 </h2>
                 <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
                   <X className="w-5 h-5" />
@@ -374,36 +385,40 @@ export default function PastasClient() {
                     required
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    rows={3}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
-                    <Landmark className="w-4 h-4 text-gray-500" />
-                    Associar à Prefeitura (opcional)
-                  </label>
-                  <select
-                    value={formData.prefectureId}
-                    onChange={(e) => setFormData({ ...formData, prefectureId: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  >
-                    <option value="">Nenhuma prefeitura</option>
-                    {prefectures.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} - {p.city}/{p.state}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Ao usar templates, apenas pastas desta prefeitura aparecerão
-                  </p>
-                </div>
+                {!isGestor && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+                      <textarea
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        rows={3}
+                        className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
+                        <Landmark className="w-4 h-4 text-gray-500" />
+                        Associar à Prefeitura (opcional)
+                      </label>
+                      <select
+                        value={formData.prefectureId}
+                        onChange={(e) => setFormData({ ...formData, prefectureId: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      >
+                        <option value="">Nenhuma prefeitura</option>
+                        {prefectures.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} - {p.city}/{p.state}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Ao usar templates, apenas pastas desta prefeitura aparecerão
+                      </p>
+                    </div>
+                  </>
+                )}
                 <div className="flex gap-3 pt-2">
                   <button
                     type="button"

@@ -47,10 +47,14 @@ export async function PATCH(
     }
 
     const body = await request.json();
+    const userRole = (session.user as any).role;
+
+    // GESTOR can only rename folders
+    const updateData = userRole === "GESTOR" ? { name: body.name } : body;
 
     const folder = await prisma.folder.update({
       where: { id: params.id },
-      data: body,
+      data: updateData,
     });
 
     const user = session.user as any;
@@ -79,6 +83,11 @@ export async function DELETE(
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    const userRole = (session.user as any).role;
+    if (userRole === "GESTOR") {
+      return NextResponse.json({ error: "Gestor não pode excluir pastas" }, { status: 403 });
     }
 
     // Buscar pasta antes de deletar para audit log

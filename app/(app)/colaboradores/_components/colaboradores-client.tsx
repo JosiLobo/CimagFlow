@@ -99,29 +99,33 @@ export default function ColaboradoresClient() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      let res;
       if (editingUser) {
         const updateData: Record<string, unknown> = { name: formData.name, phone: formData.phone, role: formData.role, permissions: formData.permissions };
         if (formData.password) updateData.password = formData.password;
-        await fetch(`/api/collaborators/${editingUser.id}`, {
+        res = await fetch(`/api/collaborators/${editingUser.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(updateData),
         });
-        toast.success("Colaborador atualizado!");
       } else {
-        await fetch("/api/collaborators", {
+        res = await fetch("/api/collaborators", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData),
         });
-        toast.success("Colaborador cadastrado!");
       }
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.error || "Erro ao salvar");
+      }
+      toast.success(editingUser ? "Colaborador atualizado!" : "Colaborador cadastrado!");
       setShowModal(false);
       setEditingUser(null);
       resetForm();
       fetchUsers();
-    } catch {
-      toast.error("Erro ao salvar colaborador");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao salvar colaborador");
     }
   };
 
@@ -273,9 +277,9 @@ export default function ColaboradoresClient() {
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        user.role === "ADMIN" ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"
+                        user.role === "ADMIN" ? "bg-purple-100 text-purple-700" : user.role === "GESTOR" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
                       }`}>
-                        {user.role === "ADMIN" ? "Administrador" : "Colaborador"}
+                        {user.role === "ADMIN" ? "Administrador" : user.role === "GESTOR" ? "Gestor" : "Colaborador"}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -283,6 +287,11 @@ export default function ColaboradoresClient() {
                         <span className="flex items-center gap-1 text-xs text-purple-600 font-medium">
                           <Eye className="w-3 h-3" />
                           Todos
+                        </span>
+                      ) : user.role === "GESTOR" ? (
+                        <span className="flex items-center gap-1 text-xs text-amber-600 font-medium">
+                          <Eye className="w-3 h-3" />
+                          Todos (sem Admin)
                         </span>
                       ) : (
                         <span className="flex items-center gap-1 text-xs text-gray-600">
@@ -377,10 +386,11 @@ export default function ColaboradoresClient() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Função</label>
                   <select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
                     <option value="COLABORADOR">Colaborador</option>
+                    <option value="GESTOR">Gestor</option>
                     <option value="ADMIN">Administrador</option>
                   </select>
                 </div>
-                {formData.role !== "ADMIN" && (
+                {formData.role === "COLABORADOR" && (
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <label className="block text-sm font-medium text-gray-700">Módulos Permitidos</label>
