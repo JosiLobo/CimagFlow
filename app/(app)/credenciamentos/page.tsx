@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { useDebounce } from "@/hooks/use-debounce";
 
 const statusConfig = {
   PENDENTE: { label: "Pendente", icon: FileText, color: "bg-blue-500" },
@@ -32,6 +33,7 @@ export default function CredenciamentosPage() {
   const [filteredCredenciamentos, setFilteredCredenciamentos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearch = useDebounce(searchTerm, 300);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [priorityFilter, setPriorityFilter] = useState("ALL");
   const [prefectures, setPrefectures] = useState<any[]>([]);
@@ -45,7 +47,7 @@ export default function CredenciamentosPage() {
 
   useEffect(() => {
     filterCredenciamentos();
-  }, [credenciamentos, searchTerm, statusFilter, priorityFilter, prefectureFilter]);
+  }, [credenciamentos, debouncedSearch, statusFilter, priorityFilter, prefectureFilter]);
 
   const loadCredenciamentos = async () => {
     try {
@@ -90,14 +92,14 @@ export default function CredenciamentosPage() {
   const filterCredenciamentos = () => {
     let filtered = [...credenciamentos];
 
-    if (searchTerm) {
+    if (debouncedSearch) {
       filtered = filtered.filter(
         (c) =>
-          c.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          c.protocolNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          c.requesterName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          c.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          c.cnpj?.includes(searchTerm)
+          c.title?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+          c.protocolNumber?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+          c.requesterName?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+          c.companyName?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+          c.cnpj?.includes(debouncedSearch)
       );
     }
 

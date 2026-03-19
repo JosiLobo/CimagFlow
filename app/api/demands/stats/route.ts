@@ -65,23 +65,25 @@ export async function GET(req: NextRequest) {
         acc[item.priority] = item._count;
         return acc;
       }, {}),
-      byPrefecture: await Promise.all(
-        byPrefecture.map(async (item: any) => {
-          const prefecture = await prisma.prefecture.findUnique({
-            where: { id: item.prefectureId },
-            select: { name: true },
-          });
-          return {
-            prefectureId: item.prefectureId,
-            prefectureName: prefecture?.name || "Desconhecida",
-            count: item._count,
-          };
-        })
-      ),
+      byPrefecture: await (async () => {
+        const prefIds = byPrefecture.map((p: any) => p.prefectureId).filter(Boolean);
+        const prefs = await prisma.prefecture.findMany({
+          where: { id: { in: prefIds } },
+          select: { id: true, name: true },
+        });
+        const prefMap = new Map(prefs.map(p => [p.id, p.name]));
+        return byPrefecture.map((item: any) => ({
+          prefectureId: item.prefectureId,
+          prefectureName: prefMap.get(item.prefectureId) || "Desconhecida",
+          count: item._count,
+        }));
+      })(),
       recentDemands,
     };
 
-    return NextResponse.json(stats);
+    return NextResponse.json(stats, {
+      headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=60" },
+    });
   } catch (error: any) {
     console.error("Erro ao buscar estatísticas:", error);
     return NextResponse.json(

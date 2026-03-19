@@ -170,16 +170,19 @@ export async function GET(req: NextRequest) {
           assignedTo: { select: { name: true } },
         },
       }),
-      Promise.all(
-        (["BAIXA", "MEDIA", "ALTA", "URGENTE"] as const).map(async (priority) => {
-          const [total, completed] = await Promise.all([
-            prisma.demand.count({ where: { priority } }),
-            prisma.demand.count({ where: { priority, status: "CONCLUIDA" } }),
-          ]);
-          const labels: Record<string, string> = { BAIXA: "Baixa", MEDIA: "Média", ALTA: "Alta", URGENTE: "Urgente" };
-          return { priority: labels[priority], total, completed, rate: total > 0 ? Math.round((completed / total) * 1000) / 10 : 0 };
-        })
-      ),
+      (async () => {
+        const raw = await prisma.demand.groupBy({
+          by: ["priority", "status"],
+          _count: true,
+        });
+        const labels: Record<string, string> = { BAIXA: "Baixa", MEDIA: "Média", ALTA: "Alta", URGENTE: "Urgente" };
+        return (["BAIXA", "MEDIA", "ALTA", "URGENTE"] as const).map((p) => {
+          const rows = raw.filter((r) => r.priority === p);
+          const total = rows.reduce((s, r) => s + r._count, 0);
+          const completed = rows.filter((r) => r.status === "CONCLUIDA").reduce((s, r) => s + r._count, 0);
+          return { priority: labels[p], total, completed, rate: total > 0 ? Math.round((completed / total) * 1000) / 10 : 0 };
+        });
+      })(),
     ]);
 
     // ─── Compute derived values ───

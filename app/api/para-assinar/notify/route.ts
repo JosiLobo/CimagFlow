@@ -47,29 +47,30 @@ export async function POST(req: Request) {
       daysLeft = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
     }
 
-    // Send emails to all pending signers
-    let notified = 0;
-    for (const ds of pendingSigners) {
-      const html = buildReminderEmail({
-        signerName: ds.signer.name,
-        documentTitle: document.title,
-        signLink: `${baseUrl}/assinar/${ds.token}`,
-        daysLeft,
-      });
-
-      const result = await sendEmail({
-        to: ds.signer.email,
-        subject: `⏰ Lembrete: Assine o documento "${document.title}"`,
-        html,
-        notificationId: process.env.NOTIF_ID_LEMBRETE_ASSINATURA ?? "",
-      });
-
-      if (result.success) notified++;
-    }
+    // Send emails to all pending signers in parallel
+    const results = await Promise.allSettled(
+      pendingSigners.map(async (ds) => {
+        const html = buildReminderEmail({
+          signerName: ds.signer.name,
+          documentTitle: document.title,
+          signLink: `${baseUrl}/assinar/${ds.token}`,
+          daysLeft,
+        });
+        return sendEmail({
+          to: ds.signer.email,
+          subject: `⏰ Lembrete: Assine o documento "${document.title}"`,
+          html,
+          notificationId: process.env.NOTIF_ID_LEMBRETE_ASSINATURA ?? "",
+        });
+      })
+    );
+    const notified = results.filter(
+      (r) => r.status === "fulfilled" && r.value.success
+    ).length;
 
     return NextResponse.json({ success: true, notified, total: pendingSigners.length });
   } catch (error) {
-    console.error("Erro ao notificar pendentes: - route.ts:72", error);
+    console.error("Erro ao notificar pendentes: - route.ts:73", error);
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
 }

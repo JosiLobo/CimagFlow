@@ -25,7 +25,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const body = await req.json();
     const template = await prisma.template.update({ where: { id: params.id }, data: body });
 
-    const user = session.user as any;
+    const user = session!.user as any;
     await auditLog(req as any, {
       userId: user.id,
       userName: user.name || user.email,
@@ -55,7 +55,7 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     await prisma.template.delete({ where: { id: params.id } });
 
     if (template) {
-      const user = session.user as any;
+      const user = session!.user as any;
       await auditLog(req as any, {
         userId: user.id,
         userName: user.name || user.email,

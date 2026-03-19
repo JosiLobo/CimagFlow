@@ -136,6 +136,8 @@ export async function GET(req: NextRequest) {
       bidsByStatus,
       recentActivity,
       period: periodDays,
+    }, {
+      headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=120" },
     });
   } catch (error) {
     console.error("Erro ao buscar analytics:", error);

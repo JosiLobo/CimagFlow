@@ -22,28 +22,31 @@ import {
   PenLine,
   FileCode2,
   Building2,
-  Building,
+  Briefcase,
   ScrollText,
-  FileCheck,
+  BookOpenCheck,
+  BadgeCheck,
   Eye,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useDebounce } from "@/hooks/use-debounce";
 
 const ALL_MODULES = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { key: "documentos", label: "Documentos", icon: FileText },
   { key: "demandas", label: "Demandas", icon: ClipboardList },
+  { key: "credenciamentos", label: "Credenciamentos", icon: BadgeCheck },
   { key: "pastas", label: "Pastas", icon: FolderOpen },
   { key: "para-assinar", label: "Para Assinar", icon: PenLine },
   { key: "templates", label: "Modelos", icon: FileCode2 },
   { key: "assinantes", label: "Assinantes", icon: Users },
   { key: "prefeituras", label: "Prefeituras", icon: Building2 },
-  { key: "empresas", label: "Empresas", icon: Building },
+  { key: "empresas", label: "Empresas", icon: Briefcase },
   { key: "editais", label: "Editais", icon: ScrollText },
-  { key: "atas", label: "Atas", icon: FileCheck },
+  { key: "atas", label: "Atas", icon: BookOpenCheck },
 ];
 
 interface User {
@@ -63,6 +66,7 @@ export default function ColaboradoresClient() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
@@ -82,7 +86,7 @@ export default function ColaboradoresClient() {
     if (!isAdmin) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/collaborators?search=${search}`);
+      const res = await fetch(`/api/collaborators?search=${encodeURIComponent(debouncedSearch)}`);
       const data = await res.json();
       setUsers(data || []);
     } catch {
@@ -90,7 +94,7 @@ export default function ColaboradoresClient() {
     } finally {
       setLoading(false);
     }
-  }, [search, isAdmin]);
+  }, [debouncedSearch, isAdmin]);
 
   useEffect(() => {
     fetchUsers();

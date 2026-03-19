@@ -18,14 +18,13 @@ if (!process.env.DATABASE_URL && !isBuild && isProd) {
 }
 
 const createPrismaClient = () => {
-  // Durante build, retornar um objeto mock
   if (!process.env.DATABASE_URL) {
     console.warn('⚠️  DATABASE_URL não definida - usando Prisma Client mock para build')
-    return new PrismaClient() // Mock para build - não será usado
+    return new PrismaClient()
   }
   
   return new PrismaClient({
-    log: isProd ? ['error'] : ['query', 'error', 'warn'],
+    log: isProd ? ['error'] : ['error', 'warn'],
   })
 }
 

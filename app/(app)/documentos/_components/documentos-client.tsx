@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { FileText, Plus, Search, Filter, CheckCircle2, Clock, FileEdit, XCircle, Download, Eye, Send, Trash2, X } from "lucide-react";
 import Link from "next/link";
+import { useDebounce } from "@/hooks/use-debounce";
 
 type DocStatus = "TODOS" | "RASCUNHO" | "EM_ANDAMENTO" | "CONCLUIDO" | "CANCELADO";
 
@@ -20,6 +21,7 @@ export default function DocumentosClient() {
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<DocStatus>("TODOS");
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [sending, setSending] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
 
@@ -28,7 +30,7 @@ export default function DocumentosClient() {
     try {
       const params = new URLSearchParams();
       if (status !== "TODOS") params.set("status", status);
-      if (search) params.set("search", search);
+      if (debouncedSearch) params.set("search", debouncedSearch);
       const res = await fetch(`/api/documents?${params}`);
       const data = await res.json();
       setDocs(data.documents ?? []);
@@ -38,11 +40,10 @@ export default function DocumentosClient() {
     } finally {
       setLoading(false);
     }
-  }, [status, search]);
+  }, [status, debouncedSearch]);
 
   useEffect(() => {
-    const t = setTimeout(fetchDocs, 300);
-    return () => clearTimeout(t);
+    fetchDocs();
   }, [fetchDocs]);
 
   const handleSend = async (id: string) => {

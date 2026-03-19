@@ -20,6 +20,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { useDebounce } from "@/hooks/use-debounce";
 
 interface Signer {
   id: string;
@@ -59,6 +60,7 @@ export default function PrefeiturasClient() {
   const [prefectures, setPrefectures] = useState<Prefecture[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [showModal, setShowModal] = useState(false);
   const [editingPrefecture, setEditingPrefecture] = useState<Prefecture | null>(null);
   const [formData, setFormData] = useState({
@@ -82,7 +84,7 @@ export default function PrefeiturasClient() {
   const fetchPrefectures = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/prefectures?search=${search}`);
+      const res = await fetch(`/api/prefectures?search=${encodeURIComponent(debouncedSearch)}`);
       const data = await res.json();
       setPrefectures(data.prefectures || []);
     } catch {
@@ -90,7 +92,7 @@ export default function PrefeiturasClient() {
     } finally {
       setLoading(false);
     }
-  }, [search]);
+  }, [debouncedSearch]);
 
   useEffect(() => {
     fetchPrefectures();

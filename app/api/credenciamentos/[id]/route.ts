@@ -50,7 +50,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const user = session.user as any;
+    const user = session!.user as any;
     const body = await request.json();
 
     // Buscar credenciamento atual para comparação
@@ -109,7 +109,7 @@ export async function PATCH(
         await prisma.credenciamento.update({
           where: { id: params.id },
           data: {
-            reviewedBy: user.id,
+            reviewerId: user.id,
             reviewedAt: new Date(),
             resolvedAt: new Date(),
           },
@@ -206,7 +206,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const user = session.user as any;
+    const user = session!.user as any;
 
     // Buscar credenciamento antes de deletar
     const credenciamento = await prisma.credenciamento.findUnique({

@@ -19,6 +19,7 @@ import {
 import Link from "next/link";
 import { toast } from "react-hot-toast";
 import { useSession } from "next-auth/react";
+import { useDebounce } from "@/hooks/use-debounce";
 
 interface Folder {
   id: string;
@@ -48,6 +49,7 @@ export default function PastasClient() {
   const [prefectures, setPrefectures] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [breadcrumb, setBreadcrumb] = useState<{ id: string | null; name: string }[]>([
     { id: null, name: "Raiz" },
@@ -61,7 +63,7 @@ export default function PastasClient() {
     try {
       const params = new URLSearchParams();
       if (currentFolderId) params.append("parentId", currentFolderId);
-      if (search) params.append("search", search);
+      if (debouncedSearch) params.append("search", debouncedSearch);
 
       const res = await fetch(`/api/folders?${params}`);
       const data = await res.json();
@@ -79,7 +81,7 @@ export default function PastasClient() {
     } finally {
       setLoading(false);
     }
-  }, [currentFolderId, search]);
+  }, [currentFolderId, debouncedSearch]);
 
   useEffect(() => {
     fetchFolders();

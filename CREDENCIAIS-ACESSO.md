@@ -17,8 +17,8 @@ Senha:    admin123
 
 ## 📍 Onde Usar
 
-- **URL Local**: http://localhost:3001
-- **URL Produção**: https://seu-dominio.vercel.app
+- **URL Local**: http://localhost:3000
+- **URL Produção**: Configure conforme seu ambiente de deploy
 
 ## 🔧 Implementação Técnica
 

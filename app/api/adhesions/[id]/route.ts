@@ -40,7 +40,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       },
     });
 
-    const user = session.user as any;
+    const user = session!.user as any;
     await auditLog(request, {
       userId: user.id,
       userName: user.name || user.email,
@@ -84,7 +84,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     });
 
     if (adhesion) {
-      const user = session.user as any;
+      const user = session!.user as any;
       await auditLog(request, {
         userId: user.id,
         userName: user.name || user.email,

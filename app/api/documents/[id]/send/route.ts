@@ -32,7 +32,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     });
 
     // Registrar auditoria de envio de documento para assinatura
-    const user = session.user as any;
+    const user = session!.user as any;
     await auditLog(req as any, {
       userId: user.id,
       userName: user.name || user.email,

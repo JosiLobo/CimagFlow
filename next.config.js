@@ -6,13 +6,19 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
-  images: { 
-    unoptimized: true 
+  reactStrictMode: true,
+  compress: true,
+  poweredByHeader: false,
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: '**.amazonaws.com' },
+    ],
   },
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',
     },
+    optimizePackageImports: ['lucide-react', 'date-fns', 'recharts', 'framer-motion'],
   },
 };
 

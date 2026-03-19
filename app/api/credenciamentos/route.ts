@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
 
     // Registrar auditoria se for usuário autenticado
     if (session) {
-      const user = session.user as any;
+      const user = session!.user as any;
       await auditLog(request, {
         userId: user.id,
         userName: user.name || user.email,

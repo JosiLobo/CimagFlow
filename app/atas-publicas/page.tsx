@@ -16,6 +16,7 @@ import {
 import { toast } from "react-hot-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useDebounce } from "@/hooks/use-debounce";
 
 interface PublicMinute {
   id: string;
@@ -45,6 +46,7 @@ export default function AtasPublicasPage() {
   const [minutes, setMinutes] = useState<PublicMinute[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [onlyActive, setOnlyActive] = useState(true);
   const [selectedMinute, setSelectedMinute] = useState<PublicMinute | null>(null);
   const [showAdhesionModal, setShowAdhesionModal] = useState(false);
@@ -62,13 +64,13 @@ export default function AtasPublicasPage() {
 
   useEffect(() => {
     fetchMinutes();
-  }, [search, onlyActive]);
+  }, [debouncedSearch, onlyActive]);
 
   const fetchMinutes = async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (search) params.append("search", search);
+      if (debouncedSearch) params.append("search", debouncedSearch);
       if (onlyActive) params.append("onlyActive", "true");
 
       const res = await fetch(`/api/public/minutes?${params}`);

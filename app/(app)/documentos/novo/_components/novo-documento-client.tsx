@@ -119,27 +119,20 @@ export default function NovoDocumentoClient() {
         folderId: folderId || null,
       };
 
-      console.log("Enviando documento:", payload);
-
       const res = await fetch("/api/documents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      console.log("Resposta:", res.status, res.statusText);
-
       // Verificar se a resposta é JSON (pode ser redirect de autenticação)
       const contentType = res.headers.get("content-type");
       if (!contentType?.includes("application/json")) {
-        const text = await res.text();
-        console.error("Resposta não-JSON:", text.substring(0, 200));
         alert("Erro de autenticação. Faça login novamente.");
         return;
       }
 
       const data = await res.json();
-      console.log("Dados:", data);
 
       if (!res.ok) {
         alert(data.error ?? "Erro ao criar documento");
@@ -147,7 +140,6 @@ export default function NovoDocumentoClient() {
       }
 
       if (andSend && selectedSigners.length > 0) {
-        console.log("Enviando para assinatura...");
         await fetch(`/api/documents/${data.document.id}/send`, { method: "POST" });
       }
 

@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Auditoria
-    const user = session.user as any;
+    const user = session!.user as any;
     await auditLog(request, {
       userId: user.id,
       userName: user.name || user.email,

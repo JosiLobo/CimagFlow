@@ -6,6 +6,7 @@ import { FileCode2, Plus, Search, Edit2, Trash2, X, Check, Loader2, Tag, Eye, Fi
 
 const HEADER_ACCEPT = "image/png,image/jpeg,image/jpg,image/webp";
 import Link from "next/link";
+import { useDebounce } from "@/hooks/use-debounce";
 
 const COMMON_VARS = [
   // Data
@@ -26,6 +27,7 @@ export default function TemplatesClient() {
   const [templates, setTemplates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [showModal, setShowModal] = useState(false);
   const [showPreview, setShowPreview] = useState<any>(null);
   const [editId, setEditId] = useState<string | null>(null);
@@ -55,17 +57,16 @@ export default function TemplatesClient() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (search) params.set("search", search);
+      if (debouncedSearch) params.set("search", debouncedSearch);
       const res = await fetch(`/api/templates?${params}`);
       const data = await res.json();
       setTemplates(data.templates ?? []);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
-  }, [search]);
+  }, [debouncedSearch]);
 
   useEffect(() => {
-    const t = setTimeout(fetchTemplates, 300);
-    return () => clearTimeout(t);
+    fetchTemplates();
   }, [fetchTemplates]);
 
   const openCreate = () => {
@@ -217,7 +218,6 @@ export default function TemplatesClient() {
       const url = editId ? `/api/templates/${editId}` : "/api/templates";
       const method = editId ? "PATCH" : "POST";
       const payload = { name: form.name, description: form.description, content, variables: vars, headerImage, footerImage };
-      console.log("[Templates] Saving template, payload size:", JSON.stringify(payload).length, "bytes");
       const res = await fetch(url, {
         method, headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -234,8 +234,7 @@ export default function TemplatesClient() {
         alert(errorMsg);
       }
     } catch (err: unknown) {
-      console.error("[Templates] Save error:", err);
-      alert("Erro de conexão ao salvar o modelo. Verifique o console.");
+      alert("Erro de conexão ao salvar o modelo.");
     } finally { setSaving(false); }
   };
 

@@ -41,8 +41,30 @@ export default function AppShell({ children }: AppShellProps) {
   useEffect(() => {
     if (!session?.user) return;
     fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 30000);
-    return () => clearInterval(interval);
+
+    let interval: ReturnType<typeof setInterval>;
+
+    const startPolling = () => {
+      interval = setInterval(fetchUnreadCount, 30000);
+    };
+    const stopPolling = () => {
+      clearInterval(interval);
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        fetchUnreadCount();
+        startPolling();
+      } else {
+        stopPolling();
+      }
+    };
+
+    startPolling();
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      stopPolling();
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, [session, fetchUnreadCount]);
 
   return (

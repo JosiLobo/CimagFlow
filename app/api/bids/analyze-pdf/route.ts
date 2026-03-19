@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import { PDFParse } from "pdf-parse";
 
 export const dynamic = "force-dynamic";
 
@@ -18,12 +19,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Arquivo não enviado" }, { status: 400 });
     }
 
-    // Ler o nome do arquivo para sugerir número e título
     const fileName = file.name;
-    console.log("Analisando arquivo:", fileName);
 
-    // Extrair informações do nome do arquivo
-    const suggestions = analyzeFileName(fileName);
+    // Try to extract text from the PDF content
+    let pdfText = "";
+    try {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const parser = new PDFParse({ data: buffer });
+      const result = await parser.getText();
+      pdfText = result.text?.substring(0, 5000) || "";
+      await parser.destroy();
+    } catch {
+      // Fallback to filename analysis if PDF parsing fails
+    }
+
+    const suggestions = pdfText
+      ? analyzeContent(pdfText, fileName)
+      : analyzeFileName(fileName);
 
     return NextResponse.json(suggestions);
   } catch (error) {
@@ -35,108 +47,129 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function analyzeFileName(fileName: string): {
+function analyzeContent(text: string, fileName: string): {
   number: string;
   title: string;
+  description: string;
   type: string;
 } {
-  // Remove extensão
-  const nameWithoutExt = fileName.replace(/\.(pdf|PDF)$/, "");
-  
-  // Padrões comuns de editais brasileiros
-  const patterns = {
-    // Padrão: "001/2026" ou "001-2026" ou "001_2026"
-    number: /(\d{1,4})[\/\-_](\d{4})/,
-    
-    // Tipos de edital
-    pregao: /(pregão|pregao)/i,
-    dispensa: /dispensa/i,
-    inexigibilidade: /inexigibilidade/i,
-    concorrencia: /concorrência|concorrencia/i,
-    chamada: /chamada.?pública|chamada.?publica/i,
-    credenciamento: /credenciamento/i,
-    leilao: /leilão|leilao/i,
-    tomada: /tomada.?de.?preços|tomada.?de.?precos/i,
-  };
+  const normalized = text.replace(/\s+/g, " ");
 
-  // Tentar extrair número
+  // Extract bid number patterns common in Brazilian public bids
   let number = "";
-  const numberMatch = nameWithoutExt.match(patterns.number);
-  if (numberMatch) {
-    number = `${numberMatch[1]}/${numberMatch[2]}`;
-  } else {
-    // Tentar encontrar apenas números no início
-    const simpleNumber = nameWithoutExt.match(/^(\d{1,4})/);
-    if (simpleNumber) {
-      const year = new Date().getFullYear();
-      number = `${simpleNumber[1]}/${year}`;
+  const numberPatterns = [
+    /(?:edital|pregão|pregao|dispensa|licitação|licitacao|concorrência|concorrencia|tomada|inexigibilidade|chamada|convite|leilão|leilao|credenciamento)\s*(?:n[°ºo.]?\s*|nº\s*)?(\d{1,4}[\s]*[\/\-][\s]*\d{4})/i,
+    /(?:processo|procedimento)\s*(?:licitatório|licitatorio|administrativo)?\s*(?:n[°ºo.]?\s*|nº\s*)?(\d{1,4}[\s]*[\/\-][\s]*\d{4})/i,
+    /n[°ºo.]\s*(\d{1,4}\s*[\/\-]\s*\d{4})/i,
+    /(\d{1,4}\/\d{4})/,
+  ];
+  for (const pattern of numberPatterns) {
+    const match = normalized.match(pattern);
+    if (match) {
+      number = match[1].replace(/\s/g, "");
+      break;
     }
   }
 
-  // Identificar tipo
+  // Identify bid type from content
   let type = "PREGAO_ELETRONICO";
-  let typeText = "";
-  
-  if (patterns.pregao.test(nameWithoutExt)) {
-    type = "PREGAO_ELETRONICO";
-    typeText = "Pregão Eletrônico";
-  } else if (patterns.dispensa.test(nameWithoutExt)) {
-    type = "DISPENSA";
-    typeText = "Dispensa";
-  } else if (patterns.inexigibilidade.test(nameWithoutExt)) {
-    type = "INEXIGIBILIDADE";
-    typeText = "Inexigibilidade";
-  } else if (patterns.concorrencia.test(nameWithoutExt)) {
-    type = "CONCORRENCIA";
-    typeText = "Concorrência";
-  } else if (patterns.chamada.test(nameWithoutExt)) {
-    type = "CHAMADA_PUBLICA";
-    typeText = "Chamada Pública";
-  } else if (patterns.credenciamento.test(nameWithoutExt)) {
-    type = "CREDENCIAMENTO";
-    typeText = "Credenciamento";
-  } else if (patterns.leilao.test(nameWithoutExt)) {
-    type = "LEILAO";
-    typeText = "Leilão";
-  } else if (patterns.tomada.test(nameWithoutExt)) {
-    type = "TOMADA_PRECOS";
-    typeText = "Tomada de Preços";
+  const typeMap: [RegExp, string][] = [
+    [/pregão\s*eletrônico|pregao\s*eletronico/i, "PREGAO_ELETRONICO"],
+    [/pregão|pregao/i, "PREGAO"],
+    [/dispensa\s*(?:de\s*)?licitação|dispensa\s*(?:de\s*)?licitacao/i, "DISPENSA"],
+    [/inexigibilidade/i, "INEXIGIBILIDADE"],
+    [/concorrência|concorrencia/i, "CONCORRENCIA"],
+    [/chamada\s*pública|chamada\s*publica/i, "CHAMADA_PUBLICA"],
+    [/tomada\s*de\s*preços|tomada\s*de\s*precos/i, "TOMADA_PRECOS"],
+    [/credenciamento/i, "CREDENCIAMENTO"],
+    [/convite/i, "CONVITE"],
+    [/leilão|leilao/i, "LEILAO"],
+    [/concurso/i, "CONCURSO"],
+    [/compra\s*direta/i, "COMPRA_DIRETA"],
+  ];
+  for (const [pattern, value] of typeMap) {
+    if (pattern.test(normalized)) {
+      type = value;
+      break;
+    }
   }
 
-  // Gerar título sugerido
+  // Extract title / object
   let title = "";
-  
-  // Remover número e tipo do nome para extrair o objeto
-  let cleanName = nameWithoutExt
-    .replace(patterns.number, "")
-    .replace(/pregão|pregao|eletrônico|eletronico/gi, "")
-    .replace(/dispensa|inexigibilidade|concorrência|concorrencia/gi, "")
-    .replace(/chamada.?pública|chamada.?publica/gi, "")
-    .replace(/credenciamento|leilão|leilao/gi, "")
-    .replace(/tomada.?de.?preços|tomada.?de.?precos/gi, "")
-    .replace(/[_\-\.]/g, " ")
-    .trim();
-
-  // Capitalizar e limpar
-  cleanName = cleanName
-    .split(" ")
-    .filter(word => word.length > 2)
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(" ");
-
-  if (cleanName && typeText) {
-    title = `${typeText} ${number ? number + " - " : ""}${cleanName}`;
-  } else if (typeText && number) {
-    title = `${typeText} ${number}`;
-  } else if (cleanName) {
-    title = cleanName;
-  } else {
-    title = nameWithoutExt.replace(/[_\-]/g, " ").trim();
+  const objectPatterns = [
+    /(?:objeto|OBJETO)\s*[:\-–]\s*(.{10,200}?)(?:\.|,\s*conforme|,\s*de\s*acordo|,\s*nos\s*termos)/i,
+    /(?:objeto|OBJETO)\s*[:\-–]\s*(.{10,200})/i,
+    /(?:tem\s*por\s*objeto|tem\s*como\s*objeto)\s*(?:a\s*|o\s*)?(.{10,200}?)(?:\.|,\s*conforme)/i,
+  ];
+  for (const pattern of objectPatterns) {
+    const match = normalized.match(pattern);
+    if (match) {
+      title = match[1].trim().replace(/\s+/g, " ");
+      if (title.length > 150) title = title.substring(0, 150) + "...";
+      break;
+    }
   }
 
-  return {
-    number: number || "",
-    title: title || nameWithoutExt,
-    type,
-  };
+  // Extract description - broader context
+  let description = "";
+  const descPatterns = [
+    /(?:objeto|OBJETO)\s*[:\-–]\s*(.{10,500}?)(?:\n|\d+[\.\)]\s|(?:cl[áa]usula|cap[ií]tulo|se[çc][ãa]o))/i,
+    /(?:objeto|OBJETO)\s*[:\-–]\s*(.{10,500})/i,
+  ];
+  for (const pattern of descPatterns) {
+    const match = normalized.match(pattern);
+    if (match) {
+      description = match[1].trim().replace(/\s+/g, " ");
+      if (description.length > 400) description = description.substring(0, 400) + "...";
+      break;
+    }
+  }
+
+  // Fallback to file name if content doesn't yield results
+  if (!number) {
+    const fallback = analyzeFileName(fileName);
+    number = fallback.number;
+  }
+  if (!title) {
+    title = fileName.replace(/\.(pdf|PDF)$/, "").replace(/[_-]/g, " ");
+  }
+
+  return { number, title, description, type };
+}
+
+function analyzeFileName(fileName: string): {
+  number: string;
+  title: string;
+  description: string;
+  type: string;
+} {
+  const nameWithoutExt = fileName.replace(/\.(pdf|PDF)$/, "");
+
+  let number = "";
+  const numberMatch = nameWithoutExt.match(/(\d{1,4})[\/\-_](\d{4})/);
+  if (numberMatch) {
+    number = `${numberMatch[1]}/${numberMatch[2]}`;
+  }
+
+  let type = "PREGAO_ELETRONICO";
+  const typeMap: [RegExp, string][] = [
+    [/pregão|pregao/i, "PREGAO_ELETRONICO"],
+    [/dispensa/i, "DISPENSA"],
+    [/inexigibilidade/i, "INEXIGIBILIDADE"],
+    [/concorrência|concorrencia/i, "CONCORRENCIA"],
+    [/chamada/i, "CHAMADA_PUBLICA"],
+    [/credenciamento/i, "CREDENCIAMENTO"],
+    [/leilão|leilao/i, "LEILAO"],
+    [/tomada/i, "TOMADA_PRECOS"],
+  ];
+  for (const [pattern, value] of typeMap) {
+    if (pattern.test(nameWithoutExt)) {
+      type = value;
+      break;
+    }
+  }
+
+  const title = nameWithoutExt.replace(/[_-]/g, " ").replace(/\s+/g, " ").trim();
+
+  return { number, title, description: "", type };
 }

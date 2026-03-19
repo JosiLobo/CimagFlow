@@ -75,28 +75,21 @@ npm run dev
 
 O aplicativo estará disponível em [http://localhost:3000](http://localhost:3000)
 
-## 🌐 Deploy na Vercel
+## 🌐 Deploy em Produção
 
 ### Passo a Passo
 
 1. **Prepare o banco de dados PostgreSQL**
-   - Crie um banco PostgreSQL (recomendado: Vercel Postgres, Neon, Supabase)
+   - Crie um banco PostgreSQL (ex: AWS RDS, Neon, Supabase)
    - Anote a `DATABASE_URL`
 
-2. **Configure o projeto na Vercel**
-   - Acesse [vercel.com](https://vercel.com)
-   - Faça login e clique em "Add New Project"
-   - Importe seu repositório do GitHub/GitLab/Bitbucket
-
-3. **Configure as variáveis de ambiente**
-   
-   Na Vercel, adicione as seguintes variáveis:
+2. **Configure as variáveis de ambiente no servidor**
    
    ```
    DATABASE_URL=postgresql://...
    NEXTAUTH_SECRET=<gere-uma-chave-secreta>
-   NEXTAUTH_URL=https://seu-dominio.vercel.app
-   
+   NEXTAUTH_URL=https://seu-dominio.com
+
    # Opcionais (se usar AWS S3)
    AWS_PROFILE=hosted_storage
    AWS_REGION=us-west-2
@@ -105,54 +98,16 @@ O aplicativo estará disponível em [http://localhost:3000](http://localhost:300
    ABACUSAI_API_KEY=sua-chave
    ```
 
-4. **Configure os comandos de build**
-   
-   A Vercel detectará automaticamente os comandos do `package.json`:
-   - Build Command: `npm run build` ou `prisma generate && next build`
-   - Install Command: `npm install`
-   - Output Directory: `.next`
-
-5. **Adicione o script de build no package.json** (se necessário):
-   
-   ```json
-   {
-     "scripts": {
-       "build": "prisma generate && next build"
-     }
-   }
-   ```
-
-6. **Execute as migrações do banco**
-   
-   Após o primeiro deploy, execute as migrações:
+3. **Execute as migrações do banco**
    ```bash
-   # Instale a Vercel CLI
-   npm i -g vercel
-   
-   # Faça login
-   vercel login
-   
-   # Execute as migrações
-   vercel env pull .env.local
    npx prisma migrate deploy
    ```
 
-7. **Deploy!**
-   - Clique em "Deploy"
-   - Aguarde a build completar
-   - Acesse seu aplicativo no domínio fornecido
-
-### Migrações Automáticas
-
-Para executar migrações automaticamente a cada deploy, adicione ao `package.json`:
-
-```json
-{
-  "scripts": {
-    "vercel-build": "prisma generate && prisma migrate deploy && next build"
-  }
-}
-```
+4. **Build e Start**
+   ```bash
+   npm run build
+   npm run start
+   ```
 
 ## 📝 Credenciais Padrão
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FileText,
@@ -18,10 +18,12 @@ import {
   Loader2,
   Paperclip,
   Download,
+  Eye,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useDebounce } from "@/hooks/use-debounce";
 
 interface Prefecture {
   id: string;
@@ -80,6 +82,7 @@ export default function EditaisClient() {
   const [prefectures, setPrefectures] = useState<Prefecture[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [filterStatus, setFilterStatus] = useState("TODOS");
   const [filterType, setFilterType] = useState("TODOS");
   const [showModal, setShowModal] = useState(false);
@@ -103,12 +106,14 @@ export default function EditaisClient() {
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [fileSize, setFileSize] = useState<number | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   const fetchBids = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (search) params.append("search", search);
+      if (debouncedSearch) params.append("search", debouncedSearch);
       if (filterStatus !== "TODOS") params.append("status", filterStatus);
       if (filterType !== "TODOS") params.append("type", filterType);
 
@@ -117,7 +122,6 @@ export default function EditaisClient() {
         throw new Error("Erro ao buscar editais");
       }
       const data = await res.json();
-      console.log("Editais carregados:", data.bids);
       setBids(data.bids || []);
     } catch (error) {
       console.error("Erro ao carregar editais:", error);
@@ -125,7 +129,7 @@ export default function EditaisClient() {
     } finally {
       setLoading(false);
     }
-  }, [search, filterStatus, filterType]);
+  }, [debouncedSearch, filterStatus, filterType]);
 
   const fetchPrefectures = async () => {
     try {
@@ -146,7 +150,6 @@ export default function EditaisClient() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validar tipo e tamanho
     if (file.type !== "application/pdf") {
       toast.error("Apenas arquivos PDF são permitidos");
       return;
@@ -157,10 +160,12 @@ export default function EditaisClient() {
     }
 
     setSelectedFile(file);
+    // Create local blob URL for PDF preview
+    const blobUrl = URL.createObjectURL(file);
+    setPreviewUrl(blobUrl);
     setAnalyzingPdf(true);
 
     try {
-      // Analisar o arquivo para extrair número e título
       const formDataToAnalyze = new FormData();
       formDataToAnalyze.append("file", file);
 
@@ -171,21 +176,20 @@ export default function EditaisClient() {
 
       if (response.ok) {
         const suggestions = await response.json();
-        console.log("Sugestões do PDF:", suggestions);
 
-        // Preencher campos automaticamente se estiverem vazios
         setFormData(prev => ({
           ...prev,
           number: prev.number || suggestions.number || "",
           title: prev.title || suggestions.title || "",
+          description: prev.description || suggestions.description || "",
           type: prev.type === "PREGAO_ELETRONICO" ? suggestions.type : prev.type,
         }));
 
-        toast.success("Arquivo analisado! Número e título sugeridos automaticamente.");
+        toast.success("PDF analisado! Campos preenchidos automaticamente.");
       }
     } catch (error) {
       console.error("Erro ao analisar PDF:", error);
-      toast.error("Não foi possível analisar o arquivo, mas você pode preencher manualmente");
+      toast.error("Não foi possível analisar o arquivo, preencha manualmente");
     } finally {
       setAnalyzingPdf(false);
     }
@@ -230,8 +234,6 @@ export default function EditaisClient() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("=== INICIANDO SUBMISSÃO ===");
-    console.log("Form data:", formData);
     
     // Validação básica
     if (!formData.number || !formData.title) {
@@ -248,7 +250,6 @@ export default function EditaisClient() {
       };
 
       if (selectedFile) {
-        console.log("Fazendo upload do arquivo...");
         const uploaded = await uploadFile();
         if (uploaded) {
           fileData = {
@@ -256,7 +257,6 @@ export default function EditaisClient() {
             fileName: uploaded.fileName,
             fileSize: uploaded.fileSize.toString(),
           };
-          console.log("Arquivo enviado com sucesso:", fileData);
         } else {
           toast.error("Erro ao enviar arquivo. Salvando edital sem anexo.");
           fileData = { fileUrl: "", fileName: "", fileSize: "" };
@@ -277,38 +277,27 @@ export default function EditaisClient() {
         fileSize: fileData.fileSize || "",
       };
 
-      console.log("=== DADOS A ENVIAR ===");
-      console.log(JSON.stringify(dataToSend, null, 2));
-
       let response;
       if (editingBid) {
-        console.log("Atualizando edital:", editingBid.id);
         response = await fetch(`/api/bids/${editingBid.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(dataToSend),
         });
       } else {
-        console.log("Criando novo edital");
         response = await fetch("/api/bids", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(dataToSend),
         });
       }
-
-      console.log("=== RESPOSTA DA API ===");
-      console.log("Status:", response.status, response.statusText);
       
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("Erro da API:", errorData);
         throw new Error(errorData.error || errorData.details || "Erro ao salvar edital");
       }
 
-      const result = await response.json();
-      console.log("=== EDITAL SALVO COM SUCESSO ===");
-      console.log(result);
+      await response.json();
 
       toast.success(editingBid ? "Edital atualizado!" : "Edital cadastrado com sucesso!");
       setShowModal(false);
@@ -316,12 +305,8 @@ export default function EditaisClient() {
       setSelectedFile(null);
       resetForm();
       
-      // Recarregar a lista
-      console.log("Recarregando lista de editais...");
       await fetchBids();
     } catch (error) {
-      console.error("=== ERRO AO SALVAR ===");
-      console.error(error);
       toast.error(error instanceof Error ? error.message : "Erro ao salvar edital");
     }
   };
@@ -354,6 +339,7 @@ export default function EditaisClient() {
     });
     setSelectedFile(null);
     setShowModal(true);
+    setPreviewUrl(bid.fileUrl || null);
   };
 
   const resetForm = () => {
@@ -376,6 +362,9 @@ export default function EditaisClient() {
     setFileSize(null);
     setAnalyzingPdf(false);
     setUploadingFile(false);
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    setShowPreview(false);
   };
 
   const getStatusBadge = (status: string) => {
@@ -494,16 +483,29 @@ export default function EditaisClient() {
                       <span>{bid._count.documents} documentos</span>
                     </div>
                     {bid.fileUrl && bid.fileName && (
-                      <a
-                        href={bid.fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-emerald-600 hover:text-emerald-700"
-                      >
-                        <Paperclip className="w-4 h-4" />
-                        <span>Edital PDF</span>
-                        <Download className="w-3 h-3" />
-                      </a>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPreviewUrl(bid.fileUrl);
+                            setFormData(prev => ({ ...prev, fileName: bid.fileName || "" }));
+                            setShowPreview(true);
+                          }}
+                          className="flex items-center gap-1 text-emerald-600 hover:text-emerald-700"
+                        >
+                          <Eye className="w-4 h-4" />
+                          <span>Visualizar</span>
+                        </button>
+                        <a
+                          href={bid.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-blue-600 hover:text-blue-700"
+                        >
+                          <Download className="w-4 h-4" />
+                          <span>Baixar</span>
+                        </a>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -534,7 +536,7 @@ export default function EditaisClient() {
               initial={{ scale: 0.95 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.95 }}
-              className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6"
+              className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-4">
@@ -608,11 +610,19 @@ export default function EditaisClient() {
                           </div>
                           <button
                             type="button"
+                            onClick={() => setShowPreview(true)}
+                            className="p-1.5 hover:bg-blue-100 rounded text-blue-600"
+                            title="Visualizar PDF"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => {
                               setSelectedFile(null);
-                              setFileUrl(null);
-                              setFileName(null);
-                              setFileSize(null);
+                              if (previewUrl) URL.revokeObjectURL(previewUrl);
+                              setPreviewUrl(null);
+                              setShowPreview(false);
                             }}
                             className="p-1 hover:bg-gray-200 rounded"
                           >
@@ -646,12 +656,74 @@ export default function EditaisClient() {
                 </div>
                 <div className="flex gap-3 pt-2">
                   <button type="button" onClick={() => setShowModal(false)} className="flex-1 px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50">Cancelar</button>
-                  <button type="submit" className="flex-1 px-4 py-2 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600">
-                    Salvar
+                  <button type="submit" disabled={uploadingFile || analyzingPdf} className="flex-1 px-4 py-2 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 disabled:opacity-50">
+                    {uploadingFile ? "Enviando..." : "Salvar"}
                   </button>
                 </div>
+
+                {/* Inline PDF preview */}
+                {(previewUrl || formData.fileUrl) && (
+                  <div className="mt-2">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm font-medium text-gray-700">Pré-visualização do Edital</p>
+                      <button
+                        type="button"
+                        onClick={() => setShowPreview(true)}
+                        className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                      >
+                        <Eye className="w-3 h-3" /> Tela cheia
+                      </button>
+                    </div>
+                    <iframe
+                      src={previewUrl || formData.fileUrl}
+                      className="w-full h-64 border border-gray-200 rounded-xl"
+                      title="Pré-visualização do PDF"
+                    />
+                  </div>
+                )}
               </form>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Full-screen PDF Preview Modal */}
+      <AnimatePresence>
+        {showPreview && (previewUrl || formData.fileUrl) && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 flex flex-col z-[60]"
+            onClick={() => setShowPreview(false)}
+          >
+            <div className="flex items-center justify-between p-4 bg-gray-900">
+              <h3 className="text-white font-medium truncate">
+                {selectedFile?.name || formData.fileName || "Edital PDF"}
+              </h3>
+              <div className="flex items-center gap-2">
+                <a
+                  href={previewUrl || formData.fileUrl}
+                  download={selectedFile?.name || formData.fileName}
+                  className="px-3 py-1.5 bg-white/10 text-white rounded-lg hover:bg-white/20 text-sm flex items-center gap-1"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Download className="w-4 h-4" /> Baixar
+                </a>
+                <button
+                  onClick={() => setShowPreview(false)}
+                  className="p-2 hover:bg-white/10 rounded-lg text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <iframe
+              src={previewUrl || formData.fileUrl}
+              className="flex-1 w-full bg-white"
+              title="Visualização do Edital"
+              onClick={(e) => e.stopPropagation()}
+            />
           </motion.div>
         )}
       </AnimatePresence>

@@ -43,21 +43,9 @@ export function getClientIp(request: NextRequest): string {
  */
 export async function createAuditLog(params: AuditLogParams) {
   try {
-    // Verificar se o userId existe no banco antes de criar o log
-    let validUserId = params.userId;
-    if (validUserId) {
-      const userExists = await prisma.user.findUnique({
-        where: { id: validUserId },
-        select: { id: true },
-      });
-      if (!userExists) {
-        validUserId = undefined;
-      }
-    }
-
     await prisma.auditLog.create({
       data: {
-        userId: validUserId,
+        userId: params.userId,
         userName: params.userName || "Sistema",
         action: params.action,
         entity: params.entity,

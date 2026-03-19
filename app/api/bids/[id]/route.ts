@@ -66,7 +66,7 @@ export async function PATCH(
 
     // Auditoria
     if (session?.user) {
-      const user = session.user as any;
+      const user = session!.user as any;
       await auditLog(request, {
         userId: user.id,
         userName: user.name || user.email,
@@ -104,8 +104,8 @@ export async function DELETE(
     await prisma.bid.delete({ where: { id: params.id } });
 
     // Auditoria
-    if (bid) {
-      const user = session.user as any;
+    if (bid && session) {
+      const user = session!.user as any;
       await auditLog(request, {
         userId: user.id,
         userName: user.name || user.email,

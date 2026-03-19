@@ -1,6 +1,8 @@
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 
+const PUBLIC_ROUTES = /^\/(login|registro|assinar|nova-solicitacao|consulta-protocolo|responder-demanda|atas-publicas|api\/(auth|signup|sign|demands\/(public|protocol)|credenciamentos\/(public|protocol)|upload\/(presigned-public|direct-public)|prefectures|public))/;
+
 export default withAuth(
   function middleware(req) {
     return NextResponse.next();
@@ -8,29 +10,7 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ token, req }) => {
-        const pathname = req.nextUrl.pathname;
-        if (
-          pathname.startsWith("/login") ||
-          pathname.startsWith("/registro") ||
-          pathname.startsWith("/assinar") ||
-          pathname.startsWith("/nova-solicitacao") ||
-          pathname.startsWith("/consulta-protocolo") ||
-          pathname.startsWith("/responder-demanda") ||
-          pathname.startsWith("/atas-publicas") ||
-          pathname.startsWith("/api/auth") ||
-          pathname.startsWith("/api/signup") ||
-          pathname.startsWith("/api/sign") ||
-          pathname.startsWith("/api/demands/public") ||
-          pathname.startsWith("/api/demands/protocol") ||
-          pathname.startsWith("/api/credenciamentos/public") ||
-          pathname.startsWith("/api/credenciamentos/protocol") ||
-          pathname.startsWith("/api/upload/presigned-public") ||
-          pathname.startsWith("/api/upload/direct-public") ||
-          pathname.startsWith("/api/prefectures") ||
-          pathname.startsWith("/api/public")
-        ) {
-          return true;
-        }
+        if (PUBLIC_ROUTES.test(req.nextUrl.pathname)) return true;
         return !!token;
       },
     },

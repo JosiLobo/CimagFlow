@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { useDebounce } from "@/hooks/use-debounce";
 
 const statusConfig = {
   ABERTA: { label: "Aberta", icon: FileText, color: "bg-blue-500" },
@@ -33,6 +34,7 @@ export default function DemandasPage() {
   const [filteredDemands, setFilteredDemands] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearch = useDebounce(searchTerm, 300);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [priorityFilter, setPriorityFilter] = useState("ALL");
   const [prefectures, setPrefectures] = useState<any[]>([]);
@@ -47,7 +49,7 @@ export default function DemandasPage() {
 
   useEffect(() => {
     filterDemands();
-  }, [demands, searchTerm, statusFilter, priorityFilter, prefectureFilter]);
+  }, [demands, debouncedSearch, statusFilter, priorityFilter, prefectureFilter]);
 
   const loadDemands = async () => {
     try {
@@ -93,12 +95,12 @@ export default function DemandasPage() {
   const filterDemands = () => {
     let filtered = [...demands];
 
-    if (searchTerm) {
+    if (debouncedSearch) {
       filtered = filtered.filter(
         (d) =>
-          d.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          d.protocolNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          d.requesterName.toLowerCase().includes(searchTerm.toLowerCase())
+          d.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+          d.protocolNumber.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+          d.requesterName.toLowerCase().includes(debouncedSearch.toLowerCase())
       );
     }
 

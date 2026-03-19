@@ -21,6 +21,7 @@ import {
 import { toast } from "react-hot-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useDebounce } from "@/hooks/use-debounce";
 
 interface Prefecture {
   id: string;
@@ -85,6 +86,7 @@ export default function AtasClient() {
   const [bids, setBids] = useState<Bid[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [filterStatus, setFilterStatus] = useState("TODOS");
   const [filterType, setFilterType] = useState("TODOS");
   const [showModal, setShowModal] = useState(false);
@@ -117,7 +119,7 @@ export default function AtasClient() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (search) params.append("search", search);
+      if (debouncedSearch) params.append("search", debouncedSearch);
       if (filterStatus !== "TODOS") params.append("status", filterStatus);
       if (filterType !== "TODOS") params.append("type", filterType);
 
@@ -129,7 +131,7 @@ export default function AtasClient() {
     } finally {
       setLoading(false);
     }
-  }, [search, filterStatus, filterType]);
+  }, [debouncedSearch, filterStatus, filterType]);
 
   const fetchPrefectures = async () => {
     try {

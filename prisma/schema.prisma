@@ -135,6 +135,10 @@ model Document {
   demand      Demand?        @relation(fields: [demandId], references: [id])
   signers     DocumentSigner[]
 
+  @@index([createdBy])
+  @@index([status])
+  @@index([folderId])
+  @@index([createdAt])
   @@map("documents")
 }
 
@@ -153,6 +157,7 @@ model Template {
   creator     User       @relation(fields: [createdBy], references: [id])
   documents   Document[]
 
+  @@index([createdBy])
   @@map("templates")
 }
 
@@ -175,6 +180,7 @@ model Signer {
   companyRef   Company?    @relation(fields: [companyId], references: [id])
   documentSigners DocumentSigner[]
 
+  @@index([email])
   @@map("signers")
 }
 
@@ -196,6 +202,9 @@ model DocumentSigner {
   document    Document     @relation(fields: [documentId], references: [id], onDelete: Cascade)
   signer      Signer       @relation(fields: [signerId], references: [id])
 
+  @@index([documentId])
+  @@index([signerId])
+  @@index([status])
   @@map("document_signers")
 }
 
@@ -211,6 +220,8 @@ model Notification {
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([userId, read])
   @@map("notifications")
 }
 
@@ -230,6 +241,8 @@ model Folder {
   prefecture   Prefecture? @relation(fields: [prefectureId], references: [id])
   documents    Document[]
 
+  @@index([createdBy])
+  @@index([parentId])
   @@map("folders")
 }
 
@@ -280,6 +293,7 @@ model Company {
   bid           Bid?     @relation(fields: [bidId], references: [id])
   signers       Signer[]
 
+  @@index([bidId])
   @@map("companies")
 }
 
@@ -307,6 +321,8 @@ model Bid {
   companies    Company[]
   minutes      MinutesOfMeeting[]
 
+  @@index([createdBy])
+  @@index([status])
   @@map("bids")
 }
 

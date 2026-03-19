@@ -16,13 +16,14 @@ import {
   User,
   FolderOpen,
   Building2,
-  Building,
+  Briefcase,
   ScrollText,
   UserCog,
   BarChart3,
   History,
   ClipboardList,
-  FileCheck,
+  BookOpenCheck,
+  BadgeCheck,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -32,15 +33,15 @@ const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/documentos", icon: FileText, label: "Documentos" },
   { href: "/demandas", icon: ClipboardList, label: "Demandas" },
-  { href: "/credenciamentos", icon: Building, label: "Credenciamentos" },
+  { href: "/credenciamentos", icon: BadgeCheck, label: "Credenciamentos" },
   { href: "/pastas", icon: FolderOpen, label: "Pastas" },
   { href: "/para-assinar", icon: PenLine, label: "Para Assinar" },
   { href: "/templates", icon: FileCode2, label: "Modelos" },
   { href: "/assinantes", icon: Users, label: "Assinantes" },
   { href: "/prefeituras", icon: Building2, label: "Prefeituras" },
-  { href: "/empresas", icon: Building, label: "Empresas" },
+  { href: "/empresas", icon: Briefcase, label: "Empresas" },
   { href: "/editais", icon: ScrollText, label: "Editais" },
-  { href: "/atas", icon: FileCheck, label: "Atas" },
+  { href: "/atas", icon: BookOpenCheck, label: "Atas" },
 ];
 
 const adminNavItems = [
