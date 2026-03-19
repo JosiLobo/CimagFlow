@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       data: { name, city, state, cnpj, address, phone, email, mayorName },
     });
 
-    const user = session.user as any;
+    const user = session?.user as any;
     await auditLog(request, {
       userId: user.id,
       userName: user.name || user.email,

@@ -12,7 +12,8 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!(session?.user as any)?.id) {
+    const sessionUser = session?.user as any;
+    if (!sessionUser?.id) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
@@ -41,7 +42,8 @@ export async function PATCH(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!(session?.user as any)?.id) {
+    const sessionUser = session?.user as any;
+    if (!sessionUser?.id) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
@@ -52,10 +54,9 @@ export async function PATCH(
       data: body,
     });
 
-    const user = session.user as any;
     await auditLog(request, {
-      userId: user.id,
-      userName: user.name || user.email,
+      userId: sessionUser.id,
+      userName: sessionUser.name || sessionUser.email,
       action: "UPDATE",
       entity: "company",
       entityId: company.id,
@@ -76,7 +77,8 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!(session?.user as any)?.id) {
+    const sessionUser = session?.user as any;
+    if (!sessionUser?.id) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
@@ -89,10 +91,9 @@ export async function DELETE(
     await prisma.company.delete({ where: { id: params.id } });
 
     if (company) {
-      const user = session.user as any;
       await auditLog(request, {
-        userId: user.id,
-        userName: user.name || user.email,
+        userId: sessionUser.id,
+        userName: sessionUser.name || sessionUser.email,
         action: "DELETE",
         entity: "company",
         entityId: company.id,

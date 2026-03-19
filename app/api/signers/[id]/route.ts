@@ -26,7 +26,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const body = await req.json();
     const signer = await prisma.signer.update({ where: { id: params.id }, data: body });
 
-    const user = session.user as any;
+    const user = session?.user as any;
     await auditLog(req as any, {
       userId: user.id,
       userName: user.name || user.email,
@@ -56,7 +56,7 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     await prisma.signer.delete({ where: { id: params.id } });
 
     if (signer) {
-      const user = session.user as any;
+      const user = session?.user as any;
       await auditLog(req as any, {
         userId: user.id,
         userName: user.name || user.email,

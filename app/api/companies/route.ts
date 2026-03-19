@@ -52,7 +52,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!(session?.user as any)?.id) {
+    const sessionUser = session?.user as any;
+    if (!sessionUser?.id) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
@@ -82,10 +83,9 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const user = session.user as any;
     await auditLog(request, {
-      userId: user.id,
-      userName: user.name || user.email,
+      userId: sessionUser.id,
+      userName: sessionUser.name || sessionUser.email,
       action: "CREATE",
       entity: "company",
       entityId: company.id,

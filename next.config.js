@@ -10,13 +10,13 @@ const nextConfig = {
   output: 'standalone',
   compress: true,
   poweredByHeader: false,
-  serverExternalPackages: ['pdf-parse'],
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**.amazonaws.com' },
     ],
   },
   experimental: {
+    serverComponentsExternalPackages: ['pdf-parse'],
     serverActions: {
       bodySizeLimit: '10mb',
     },
