@@ -269,11 +269,13 @@ export default function NovaDemandaPage() {
                       <SelectValue placeholder="Selecione..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.isArray(prefectures) && prefectures.map((prefecture) => (
-                        <SelectItem key={prefecture.id} value={prefecture.id}>
-                          {prefecture.name} - {prefecture.city}/{prefecture.state}
-                        </SelectItem>
-                      ))}
+                      {Array.isArray(prefectures) && prefectures
+                        .filter((prefecture) => prefecture.id && prefecture.name)
+                        .map((prefecture) => (
+                          <SelectItem key={prefecture.id} value={prefecture.id}>
+                            {prefecture.name} - {prefecture.city}/{prefecture.state}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -288,11 +290,13 @@ export default function NovaDemandaPage() {
                       <SelectValue placeholder="Selecione..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.isArray(users) && users.map((user) => (
-                        <SelectItem key={user.id} value={user.id}>
-                          {user.name} - {user.role}
-                        </SelectItem>
-                      ))}
+                      {Array.isArray(users) && users
+                        .filter((user) => user.id && user.name)
+                        .map((user) => (
+                          <SelectItem key={user.id} value={user.id}>
+                            {user.name} - {user.role}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>

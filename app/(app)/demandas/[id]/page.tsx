@@ -769,7 +769,7 @@ export default function DemandaDetalhesPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Nenhum</SelectItem>
-                      {users.map((user) => (
+                      {users.filter(user => user.id && user.name).map((user) => (
                         <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
                       ))}
                     </SelectContent>
@@ -798,7 +798,7 @@ export default function DemandaDetalhesPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Nenhuma</SelectItem>
-                      {prefectures.map((p) => (
+                      {prefectures.filter(p => p.id && p.name).map((p) => (
                         <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                       ))}
                     </SelectContent>

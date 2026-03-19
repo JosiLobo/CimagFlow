@@ -22,7 +22,10 @@ export default withAuth(
           pathname.startsWith("/api/sign") ||
           pathname.startsWith("/api/demands/public") ||
           pathname.startsWith("/api/demands/protocol") ||
+          pathname.startsWith("/api/credenciamentos/public") ||
+          pathname.startsWith("/api/credenciamentos/protocol") ||
           pathname.startsWith("/api/upload/presigned-public") ||
+          pathname.startsWith("/api/upload/direct-public") ||
           pathname.startsWith("/api/prefectures") ||
           pathname.startsWith("/api/public")
         ) {

@@ -86,44 +86,66 @@ export default function FileUpload({
           continue;
         }
 
-        // Gerar presigned URL
-        const endpoint = publicUpload 
-          ? '/api/upload/presigned-public'
-          : '/api/upload/presigned';
+        let finalUrl = '';
 
-        const presignedRes = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fileName: file.name,
-            contentType: file.type,
-            isPublic: true,
-          }),
-        });
+        // Tentar upload via presigned URL (S3)
+        let s3Success = false;
+        try {
+          const endpoint = publicUpload
+            ? '/api/upload/presigned-public'
+            : '/api/upload/presigned';
 
-        if (!presignedRes.ok) {
-          const error = await presignedRes.json();
-          throw new Error(error.error || 'Erro ao gerar URL de upload');
+          const presignedRes = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fileName: file.name,
+              contentType: file.type,
+              isPublic: true,
+            }),
+          });
+
+          if (presignedRes.ok) {
+            const presignedData = await presignedRes.json();
+            const { uploadUrl, cloud_storage_path, fileUrl: presignedFileUrl } = presignedData;
+
+            const uploadRes = await fetch(uploadUrl, {
+              method: 'PUT',
+              body: file,
+              headers: { 'Content-Type': file.type },
+            });
+
+            if (uploadRes.ok) {
+              finalUrl = presignedFileUrl || cloud_storage_path;
+              s3Success = true;
+            }
+          }
+        } catch (s3Err) {
+          console.warn('S3 presigned upload failed, trying direct upload:', s3Err);
         }
 
-        const presignedData = await presignedRes.json();
-        const { uploadUrl, cloud_storage_path, fileUrl } = presignedData;
+        // Fallback: upload direto via servidor
+        if (!s3Success) {
+          const formData = new FormData();
+          formData.append('file', file);
 
-        // Upload para S3
-        const uploadRes = await fetch(uploadUrl, {
-          method: 'PUT',
-          body: file,
-          headers: {
-            'Content-Type': file.type,
-          },
-        });
+          const directEndpoint = publicUpload
+            ? '/api/upload/direct-public'
+            : '/api/upload/direct-public';
 
-        if (!uploadRes.ok) {
-          throw new Error('Erro ao fazer upload do arquivo');
+          const directRes = await fetch(directEndpoint, {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!directRes.ok) {
+            const error = await directRes.json();
+            throw new Error(error.error || 'Erro ao fazer upload do arquivo');
+          }
+
+          const directData = await directRes.json();
+          finalUrl = directData.fileUrl;
         }
-
-        // Usar fileUrl (URL pública) se disponível, senão usar cloud_storage_path
-        const finalUrl = fileUrl || cloud_storage_path;
 
         // Adicionar à lista
         const newFile: UploadedFile = {

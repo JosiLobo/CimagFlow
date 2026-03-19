@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, FileText, Clock, CheckCircle2, AlertCircle, Paperclip, Download, AlertTriangle, Send, FileCheck2, CalendarClock } from "lucide-react";
+import { Search, FileText, Clock, CheckCircle2, AlertCircle, Paperclip, Download, AlertTriangle, Send, FileCheck2, CalendarClock, Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -10,13 +10,23 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import Image from "next/image";
 
-const statusConfig = {
+// Status config para Demandas
+const demandStatusConfig = {
   ABERTA: { label: "Aberta", icon: FileText, color: "bg-blue-500" },
   EM_ANALISE: { label: "Em Análise", icon: Clock, color: "bg-yellow-500" },
   EM_ANDAMENTO: { label: "Em Andamento", icon: AlertCircle, color: "bg-orange-500" },
   AGUARDANDO_RESPOSTA: { label: "Aguardando Resposta", icon: Clock, color: "bg-purple-500" },
   CONCLUIDA: { label: "Concluída", icon: CheckCircle2, color: "bg-green-500" },
   CANCELADA: { label: "Cancelada", icon: CheckCircle2, color: "bg-red-500" },
+};
+
+// Status config para Credenciamentos
+const credenciamentoStatusConfig = {
+  PENDENTE: { label: "Pendente", icon: Clock, color: "bg-yellow-500" },
+  EM_ANALISE: { label: "Em Análise", icon: AlertCircle, color: "bg-blue-500" },
+  APROVADO: { label: "Aprovado", icon: CheckCircle2, color: "bg-green-500" },
+  REPROVADO: { label: "Reprovado", icon: AlertTriangle, color: "bg-red-500" },
+  CANCELADO: { label: "Cancelado", icon: AlertCircle, color: "bg-gray-500" },
 };
 
 const priorityConfig = {
@@ -26,9 +36,12 @@ const priorityConfig = {
   URGENTE: { label: "Urgente", color: "bg-red-500" },
 };
 
+type RecordType = "demand" | "credenciamento" | null;
+
 export default function ConsultaProtocoloPage() {
   const [protocolNumber, setProtocolNumber] = useState("");
-  const [demand, setDemand] = useState<any>(null);
+  const [record, setRecord] = useState<any>(null);
+  const [recordType, setRecordType] = useState<RecordType>(null);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
@@ -41,20 +54,37 @@ export default function ConsultaProtocoloPage() {
 
     setLoading(true);
     setSearched(true);
-    setDemand(null);
+    setRecord(null);
+    setRecordType(null);
 
     try {
-      const res = await fetch(`/api/demands/protocol/${protocolNumber.trim()}`);
+      // Tenta buscar como demanda primeiro
+      let res = await fetch(`/api/demands/protocol/${protocolNumber.trim()}`);
+      
+      if (res.ok) {
+        const data = await res.json();
+        setRecord(data);
+        setRecordType("demand");
+        return;
+      }
+
+      // Se não encontrou como demanda, tenta buscar como credenciamento
+      res = await fetch(`/api/credenciamentos/protocol/${protocolNumber.trim()}`);
+      
+      if (res.ok) {
+        const data = await res.json();
+        setRecord(data);
+        setRecordType("credenciamento");
+        return;
+      }
+
+      // Se não encontrou em nenhum dos dois
       if (res.status === 404) {
         toast.error("Protocolo não encontrado");
         return;
       }
-      if (!res.ok) {
-        throw new Error("Erro ao buscar protocolo");
-      }
 
-      const data = await res.json();
-      setDemand(data);
+      throw new Error("Erro ao buscar protocolo");
     } catch (error) {
       toast.error("Erro ao buscar protocolo");
     } finally {
@@ -76,7 +106,9 @@ export default function ConsultaProtocoloPage() {
     return decodeURIComponent(fileNameWithParams.split("?")[0]);
   };
 
-  const StatusIcon = demand ? statusConfig[demand.status as keyof typeof statusConfig].icon : FileText;
+  // Determinar configuração de status baseado no tipo
+  const statusConfig = recordType === "credenciamento" ? credenciamentoStatusConfig : demandStatusConfig;
+  const StatusIcon = record ? statusConfig[record.status as keyof typeof statusConfig]?.icon || FileText : FileText;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1E3A5F] to-[#0D2340] flex items-center justify-center p-4">
@@ -94,7 +126,7 @@ export default function ConsultaProtocoloPage() {
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">Consulta de Protocolo</h1>
           <p className="text-blue-200">
-            Acompanhe o status da sua demanda usando o número de protocolo
+            Acompanhe o status da sua solicitação ou credenciamento usando o número de protocolo
           </p>
         </div>
 
@@ -125,7 +157,7 @@ export default function ConsultaProtocoloPage() {
         </Card>
 
         {/* Results */}
-        {searched && !loading && !demand && (
+        {searched && !loading && !record && (
           <Card className="p-12">
             <div className="text-center text-muted-foreground">
               <FileText className="h-16 w-16 mx-auto mb-4 opacity-50" />
@@ -137,37 +169,80 @@ export default function ConsultaProtocoloPage() {
           </Card>
         )}
 
-        {demand && (
+        {record && (
           <div className="space-y-6">
+            {/* Badge de Tipo */}
+            <div className="flex justify-center">
+              <Badge className={recordType === "credenciamento" ? "bg-purple-600 text-white px-4 py-2 text-sm" : "bg-blue-600 text-white px-4 py-2 text-sm"}>
+                {recordType === "credenciamento" ? (
+                  <><Building className="h-4 w-4 mr-2 inline" />Credenciamento de Empresa</>
+                ) : (
+                  <><FileText className="h-4 w-4 mr-2 inline" />Demanda/Solicitação</>
+                )}
+              </Badge>
+            </div>
+
             {/* Main Info */}
             <Card className="p-6">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <Badge variant="outline" className="font-mono text-lg px-3 py-1">
-                      {demand.protocolNumber}
+                      {record.protocolNumber}
                     </Badge>
                   </div>
-                  <h2 className="text-2xl font-bold mb-2">{demand.title}</h2>
+                  <h2 className="text-2xl font-bold mb-2">{record.title}</h2>
                   <div className="flex items-center gap-2">
-                    <Badge className={priorityConfig[demand.priority as keyof typeof priorityConfig].color}>
-                      {priorityConfig[demand.priority as keyof typeof priorityConfig].label}
+                    <Badge className={priorityConfig[record.priority as keyof typeof priorityConfig]?.color || "bg-gray-500"}>
+                      {priorityConfig[record.priority as keyof typeof priorityConfig]?.label || record.priority}
                     </Badge>
-                    <Badge className={statusConfig[demand.status as keyof typeof statusConfig].color}>
-                      {statusConfig[demand.status as keyof typeof statusConfig].label}
+                    <Badge className={statusConfig[record.status as keyof typeof statusConfig]?.color || "bg-gray-500"}>
+                      {statusConfig[record.status as keyof typeof statusConfig]?.label || record.status}
                     </Badge>
                   </div>
                 </div>
                 <StatusIcon className="h-12 w-12 text-muted-foreground" />
               </div>
 
-              {demand.prefecture && (
+              {/* Info específica de Credenciamento */}
+              {recordType === "credenciamento" && (
+                <>
+                  <Separator className="my-4" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Empresa</p>
+                      <p className="font-medium">{record.companyName}</p>
+                      {record.tradeName && (
+                        <p className="text-sm text-muted-foreground">{record.tradeName}</p>
+                      )}
+                    </div>
+                    {record.activityArea && (
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-1">Área de Atuação</p>
+                        <p className="font-medium">{record.activityArea}</p>
+                      </div>
+                    )}
+                  </div>
+                  {record.requestedServices && (
+                    <>
+                      <Separator className="my-4" />
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-1">Serviços/Produtos Solicitados</p>
+                        <p className="text-sm">{record.requestedServices}</p>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+
+              {/* Info específica de Demanda */}
+              {recordType === "demand" && record.prefecture && (
                 <>
                   <Separator className="my-4" />
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">Prefeitura</p>
                     <p className="font-medium">
-                      {demand.prefecture.name} - {demand.prefecture.city}/{demand.prefecture.state}
+                      {record.prefecture.name} - {record.prefecture.city}/{record.prefecture.state}
                     </p>
                   </div>
                 </>
@@ -178,47 +253,91 @@ export default function ConsultaProtocoloPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Criada em</p>
-                  <p className="font-medium">{formatDateTime(demand.createdAt)}</p>
+                  <p className="font-medium">{formatDateTime(record.createdAt)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Última Atualização</p>
-                  <p className="font-medium">{formatDateTime(demand.updatedAt)}</p>
+                  <p className="font-medium">{formatDateTime(record.updatedAt)}</p>
                 </div>
               </div>
 
-              {demand.dueDate && (
+              {/* Datas específicas de Credenciamento */}
+              {recordType === "credenciamento" && (
                 <>
-                  <Separator className="my-4" />
-                  <div className="flex items-center gap-2">
-                    <CalendarClock className="h-4 w-4 text-orange-500" />
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Data Limite / Prazo</p>
-                      <p className="font-semibold text-orange-600">{formatDate(demand.dueDate)}</p>
-                    </div>
-                  </div>
+                  {record.approvedAt && (
+                    <>
+                      <Separator className="my-4" />
+                      <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                        <p className="text-sm text-green-700 mb-1 font-medium">✅ Aprovado em</p>
+                        <p className="font-semibold text-green-900">{formatDateTime(record.approvedAt)}</p>
+                      </div>
+                    </>
+                  )}
+                  {record.rejectedAt && (
+                    <>
+                      <Separator className="my-4" />
+                      <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                        <p className="text-sm text-red-700 mb-1 font-medium">❌ Reprovado em</p>
+                        <p className="font-semibold text-red-900 mb-2">{formatDateTime(record.rejectedAt)}</p>
+                        {record.rejectionReason && (
+                          <>
+                            <p className="text-sm text-red-700 mb-1">Motivo:</p>
+                            <p className="text-sm text-red-900">{record.rejectionReason}</p>
+                          </>
+                        )}
+                      </div>
+                    </>
+                  )}
+                  {record.analysisNotes && (
+                    <>
+                      <Separator className="my-4" />
+                      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                        <p className="text-sm text-blue-700 mb-1 font-medium">📝 Notas da Análise</p>
+                        <p className="text-sm text-blue-900 whitespace-pre-wrap">{record.analysisNotes}</p>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
 
-              {demand.resolvedAt && (
+              {/* Datas específicas de Demanda */}
+              {recordType === "demand" && (
                 <>
-                  <Separator className="my-4" />
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Data de Conclusão</p>
-                    <p className="font-medium text-green-600">{formatDateTime(demand.resolvedAt)}</p>
-                  </div>
+                  {record.dueDate && (
+                    <>
+                      <Separator className="my-4" />
+                      <div className="flex items-center gap-2">
+                        <CalendarClock className="h-4 w-4 text-orange-500" />
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-1">Data Limite / Prazo</p>
+                          <p className="font-semibold text-orange-600">{formatDate(record.dueDate)}</p>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {record.resolvedAt && (
+                    <>
+                      <Separator className="my-4" />
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-1">Data de Conclusão</p>
+                        <p className="font-medium text-green-600">{formatDateTime(record.resolvedAt)}</p>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </Card>
 
-            {/* Contratos Gerados */}
-            {demand.documents && demand.documents.length > 0 && (
+            {/* Contratos Gerados (apenas para Demandas) */}
+            {recordType === "demand" && record.documents && record.documents.length > 0 && (
               <Card className="p-6 border-emerald-200 bg-emerald-50/50">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-emerald-900">
                   <FileCheck2 className="h-5 w-5" />
                   Contrato(s) Gerado(s)
                 </h3>
                 <div className="space-y-3">
-                  {demand.documents.map((doc: any) => (
+                  {record.documents.map((doc: any) => (
                     <div key={doc.id} className="flex items-center gap-3 p-4 bg-white border border-emerald-200 rounded-lg">
                       <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
                         <FileText className="h-5 w-5 text-emerald-600" />
@@ -247,14 +366,14 @@ export default function ConsultaProtocoloPage() {
             )}
 
             {/* Arquivos Enviados */}
-            {demand.attachments && demand.attachments.length > 0 && (
+            {record.attachments && record.attachments.length > 0 && (
               <Card className="p-6">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <Paperclip className="h-5 w-5" />
                   Documentos Enviados
                 </h3>
                 <div className="grid gap-3">
-                  {demand.attachments.map((file: string, index: number) => (
+                  {record.attachments.map((file: string, index: number) => (
                     <a
                       key={index}
                       href={file}
@@ -271,24 +390,24 @@ export default function ConsultaProtocoloPage() {
               </Card>
             )}
 
-            {/* Resposta (se houver) */}
-            {(demand.responseComment || (demand.responseAttachments && demand.responseAttachments.length > 0)) && (
+            {/* Resposta (apenas para Demandas) */}
+            {recordType === "demand" && (record.responseComment || (record.responseAttachments && record.responseAttachments.length > 0)) && (
               <Card className="p-6 border-green-200 bg-green-50/50">
                 <h3 className="text-lg font-semibold mb-4 text-green-900">Resposta Recebida</h3>
                 
-                {demand.responseComment && (
+                {record.responseComment && (
                   <div className="mb-4">
-                    <p className="whitespace-pre-wrap text-sm">{demand.responseComment}</p>
+                    <p className="whitespace-pre-wrap text-sm">{record.responseComment}</p>
                   </div>
                 )}
 
-                {demand.responseAttachments && demand.responseAttachments.length > 0 && (
+                {record.responseAttachments && record.responseAttachments.length > 0 && (
                   <div>
                     <p className="text-sm font-medium mb-3 text-green-800">
                       Documentos Anexados na Resposta:
                     </p>
                     <div className="grid gap-2">
-                      {demand.responseAttachments.map((file: string, index: number) => (
+                      {record.responseAttachments.map((file: string, index: number) => (
                         <a
                           key={index}
                           href={file}
@@ -307,15 +426,15 @@ export default function ConsultaProtocoloPage() {
               </Card>
             )}
 
-            {/* Pendências (se houver) */}
-            {demand.history && demand.history.filter((h: any) => h.action === "PENDENCIA_ENVIADA").length > 0 && (
+            {/* Pendências (apenas para Demandas) */}
+            {recordType === "demand" && record.history && record.history.filter((h: any) => h.action === "PENDENCIA_ENVIADA").length > 0 && (
               <Card className="p-6 border-amber-300 bg-amber-50/80">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-amber-800">
                   <AlertTriangle className="h-5 w-5" />
                   Pendência(s) — Ação Necessária
                 </h3>
                 <div className="space-y-3">
-                  {demand.history
+                  {record.history
                     .filter((h: any) => h.action === "PENDENCIA_ENVIADA")
                     .map((item: any, index: number) => (
                       <div
@@ -334,7 +453,7 @@ export default function ConsultaProtocoloPage() {
                 </p>
                 <Button
                   onClick={() =>
-                    window.location.href = `/responder-demanda?protocolo=${encodeURIComponent(demand.protocolNumber)}`
+                    window.location.href = `/responder-demanda?protocolo=${encodeURIComponent(record.protocolNumber)}`
                   }
                   className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white"
                   size="lg"
@@ -349,12 +468,12 @@ export default function ConsultaProtocoloPage() {
             <Card className="p-6">
               <h3 className="text-lg font-semibold mb-4">Histórico</h3>
               <div className="space-y-4">
-                {demand.history && demand.history.length > 0 ? (
-                  demand.history.map((item: any, index: number) => (
+                {record.history && record.history.length > 0 ? (
+                  record.history.map((item: any, index: number) => (
                     <div key={index} className="flex gap-4">
                       <div className="flex flex-col items-center">
                         <div className={`w-3 h-3 rounded-full ${item.action === "PENDENCIA_ENVIADA" ? "bg-amber-500" : item.action === "RESPOSTA_SOLICITANTE" ? "bg-emerald-500" : item.action === "CONTRATO_GERADO" ? "bg-blue-500" : item.action === "PRAZO_ALTERADO" ? "bg-orange-500" : "bg-primary"}`} />
-                        {index < demand.history.length - 1 && (
+                        {index < record.history.length - 1 && (
                           <div className="w-0.5 h-full bg-border mt-2" />
                         )}
                       </div>

@@ -9,5 +9,6 @@ export function getBucketConfig() {
 }
 
 export function createS3Client() {
-  return new S3Client({});
+  const { region } = getBucketConfig();
+  return new S3Client({ region });
 }

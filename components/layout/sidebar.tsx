@@ -32,6 +32,7 @@ const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/documentos", icon: FileText, label: "Documentos" },
   { href: "/demandas", icon: ClipboardList, label: "Demandas" },
+  { href: "/credenciamentos", icon: Building, label: "Credenciamentos" },
   { href: "/pastas", icon: FolderOpen, label: "Pastas" },
   { href: "/para-assinar", icon: PenLine, label: "Para Assinar" },
   { href: "/templates", icon: FileCode2, label: "Modelos" },

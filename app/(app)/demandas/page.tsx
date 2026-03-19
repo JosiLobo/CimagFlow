@@ -246,11 +246,13 @@ export default function DemandasPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">Todas Prefeituras</SelectItem>
-              {Array.isArray(prefectures) && prefectures.map((prefecture) => (
-                <SelectItem key={prefecture.id} value={prefecture.id}>
-                  {prefecture.name}
-                </SelectItem>
-              ))}
+              {Array.isArray(prefectures) && prefectures
+                .filter((prefecture) => prefecture.id && prefecture.name)
+                .map((prefecture) => (
+                  <SelectItem key={prefecture.id} value={prefecture.id}>
+                    {prefecture.name}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>

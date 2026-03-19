@@ -4,6 +4,8 @@ declare global {
   var prisma: PrismaClient | undefined
 }
 
+// Force TypeScript to reload types after schema changes
+
 // Durante o build (npm run build), o Prisma Client não precisa de DATABASE_URL
 // porque é apenas para análise estática. Mas em runtime, DATABASE_URL é obrigatória.
 const isProd = process.env.NODE_ENV === 'production'

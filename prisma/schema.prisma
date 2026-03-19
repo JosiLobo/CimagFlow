@@ -100,6 +100,9 @@ model User {
   minutesCreated     MinutesOfMeeting[] @relation("MinuteCreator")
   minutesApproved    MinutesOfMeeting[] @relation("MinuteApprover")
   adhesionReviews    MinuteAdhesion[]
+  credenciamentosAssigned Credenciamento[] @relation("CredenciamentoAssigned")
+  credenciamentosReviewed Credenciamento[] @relation("CredenciamentoReviewer")
+  credenciamentoMessages  CredenciamentoMessage[]
 
   @@map("users")
 }
@@ -248,6 +251,7 @@ model Prefecture {
   bids        Bid[]
   folders     Folder[]
   minutes     MinutesOfMeeting[]
+  credenciamentos Credenciamento[]
 
   @@map("prefectures")
 }
@@ -510,4 +514,127 @@ model MinuteAdhesion {
   @@index([status])
   @@index([requesterEmail])
   @@map("minute_adhesions")
+}
+
+enum CredenciamentoStatus {
+  PENDENTE
+  EM_ANALISE
+  APROVADO
+  REPROVADO
+  CANCELADO
+}
+
+model Credenciamento {
+  id                String                @id @default(cuid())
+  protocolNumber    String                @unique
+  
+  // Dados do Solicitante
+  requesterName     String
+  requesterEmail    String
+  requesterPhone    String
+  requesterCpf      String
+  requesterCnpj     String
+  
+  // Dados da Empresa
+  companyName       String
+  tradeName         String?
+  fantasyName       String?
+  companyAddress    String
+  companyCity       String
+  companyState      String
+  companyCep        String
+  companyPhone      String
+  companyEmail      String
+  
+  // Informações do Credenciamento
+  title             String
+  description       String               @db.Text
+  activityArea      String?              // Área de atuação
+  requestedServices String?              @db.Text // Serviços solicitados
+  
+  // Status e Prioridade
+  status            CredenciamentoStatus @default(PENDENTE)
+  priority          DemandPriority       @default(MEDIA)
+  
+  // Documentação
+  attachments       String[]             @default([])
+  documents         String?              @db.Text // JSON com lista de documentos anexados
+  documentsApproval String?              @db.Text // JSON com status de aprovação de cada documento: [{url, name, status, reviewedBy, reviewedAt, comment}]
+  
+  // Prefeitura relacionada
+  prefectureId      String?
+  
+  // Análise e Aprovação
+  assignedToId      String?
+  reviewerId        String?
+  reviewedAt        DateTime?
+  analysisNotes     String?              @db.Text // Notas de análise
+  rejectionReason   String?              @db.Text // Motivo de reprovação
+  approvalDocument  String?              // URL do documento de aprovação
+  approvedAt        DateTime?            // Data de aprovação
+  rejectedAt        DateTime?            // Data de reprovação
+  
+  // Flags
+  publicSubmission  Boolean              @default(true)
+  
+  // Datas
+  dueDate           DateTime?
+  resolvedAt        DateTime?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  
+  // Relacionamentos
+  prefecture        Prefecture?          @relation(fields: [prefectureId], references: [id])
+  assignedTo        User?                @relation("CredenciamentoAssigned", fields: [assignedToId], references: [id])
+  reviewer          User?                @relation("CredenciamentoReviewer", fields: [reviewerId], references: [id])
+  history           CredenciamentoHistory[]
+  messages          CredenciamentoMessage[]
+  
+  @@index([protocolNumber])
+  @@index([status])
+  @@index([prefectureId])
+  @@index([requesterEmail])
+  @@index([createdAt])
+  @@map("credenciamentos")
+}
+
+model CredenciamentoHistory {
+  id                String         @id @default(cuid())
+  credenciamentoId  String
+  userId            String?
+  userName          String
+  action            String
+  oldValue          String?
+  newValue          String?
+  comment           String?        @db.Text
+  createdAt         DateTime       @default(now())
+  
+  credenciamento    Credenciamento @relation(fields: [credenciamentoId], references: [id], onDelete: Cascade)
+  
+  @@index([credenciamentoId])
+  @@index([createdAt])
+  @@map("credenciamento_history")
+}
+
+model CredenciamentoMessage {
+  id                String         @id @default(cuid())
+  credenciamentoId  String
+  senderName        String         // Nome do remetente
+  senderEmail       String         // Email do remetente
+  senderType        String         // "ANALYST" ou "COMPANY"
+  userId            String?        // ID do usuário analista (se aplicável)
+  message           String         @db.Text
+  attachments       String[]       @default([])
+  isInternal        Boolean        @default(false) // Se é nota interna (não enviada por email)
+  emailSent         Boolean        @default(false) // Se o email foi enviado
+  readAt            DateTime?      // Quando foi lido
+  createdAt         DateTime       @default(now())
+  
+  credenciamento    Credenciamento @relation(fields: [credenciamentoId], references: [id], onDelete: Cascade)
+  user              User?          @relation(fields: [userId], references: [id])
+  
+  @@index([credenciamentoId])
+  @@index([createdAt])
+  @@index([senderType])
+  @@map("credenciamento_messages")
 }

@@ -65,16 +65,18 @@ export async function PATCH(
     });
 
     // Auditoria
-    const user = session.user as any;
-    await auditLog(request, {
-      userId: user.id,
-      userName: user.name || user.email,
-      action: "UPDATE",
-      entity: "bid",
-      entityId: bid.id,
-      entityName: bid.number + " - " + bid.title,
-      details: `Edital atualizado: ${bid.number} - ${bid.title}`,
-    });
+    if (session?.user) {
+      const user = session.user as any;
+      await auditLog(request, {
+        userId: user.id,
+        userName: user.name || user.email,
+        action: "UPDATE",
+        entity: "bid",
+        entityId: bid.id,
+        entityName: bid.number + " - " + bid.title,
+        details: `Edital atualizado: ${bid.number} - ${bid.title}`,
+      });
+    }
 
     return NextResponse.json(bid);
   } catch (error) {
