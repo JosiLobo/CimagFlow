@@ -155,7 +155,7 @@ export default function PastasClient() {
     setShowModal(true);
   };
 
-const statusColors: Record<string, string> = {
+  const statusColors: Record<string, string> = {
     RASCUNHO: "bg-gray-100 text-gray-700",
     EM_ANDAMENTO: "bg-yellow-100 text-yellow-700",
     CONCLUIDO: "bg-green-100 text-green-700",
@@ -277,7 +277,7 @@ const statusColors: Record<string, string> = {
                           </p>
                         </div>
                       </div>
-                    {!isGestor && (
+                      {!isGestor && (
                         <div
                           className="opacity-0 group-hover:opacity-100 transition-opacity"
                           onClick={(e) => e.stopPropagation()}
@@ -298,7 +298,7 @@ const statusColors: Record<string, string> = {
                           </div>
                         </div>
                       )}
-                      </div>
+                    </div>
                   </motion.div>
                 ))}
               </div>
