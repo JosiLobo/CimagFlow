@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FileCode2, Plus, Search, Edit2, Trash2, X, Check, Loader2, Tag, Eye, FileText, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, AlignJustify, Type, Undo2, Redo2, List, ListOrdered, Minus, Maximize2, Minimize2, ImagePlus, Strikethrough, Subscript, Superscript, IndentIncrease, IndentDecrease, Link as LinkIcon, Unlink, RemoveFormatting, Highlighter, Palette } from "lucide-react";
 
 const HEADER_ACCEPT = "image/png,image/jpeg,image/jpg,image/webp";
+const SYSTEM_DEFAULT_HEADER_IMAGE = process.env.NEXT_PUBLIC_SYSTEM_HEADER_IMAGE || "/system-header.svg";
+const SYSTEM_DEFAULT_FOOTER_IMAGE = process.env.NEXT_PUBLIC_SYSTEM_FOOTER_IMAGE || "/system-footer.svg";
 import Link from "next/link";
 import { useDebounce } from "@/hooks/use-debounce";
 
@@ -51,8 +53,6 @@ export default function TemplatesClient() {
   const [showCreateVarPanel, setShowCreateVarPanel] = useState(false);
   const [headerImage, setHeaderImage] = useState<string | null>(null);
   const [footerImage, setFooterImage] = useState<string | null>(null);
-  const [defaultHeaderImage, setDefaultHeaderImage] = useState<string | null>(null);
-  const [defaultFooterImage, setDefaultFooterImage] = useState<string | null>(null);
   const [uploadingHeader, setUploadingHeader] = useState(false);
   const [uploadingFooter, setUploadingFooter] = useState(false);
   const headerInputRef = useRef<HTMLInputElement>(null);
@@ -75,19 +75,17 @@ export default function TemplatesClient() {
     fetchTemplates();
   }, [fetchTemplates]);
 
-  useEffect(() => {
-    const source = templates.find((t) => t.headerImage || t.footerImage);
-    setDefaultHeaderImage(source?.headerImage ?? null);
-    setDefaultFooterImage(source?.footerImage ?? null);
-  }, [templates]);
+  const latestTemplateWithLetterhead = templates.find((t) => t.headerImage || t.footerImage);
+  const resolvedDefaultHeaderImage = latestTemplateWithLetterhead?.headerImage ?? SYSTEM_DEFAULT_HEADER_IMAGE;
+  const resolvedDefaultFooterImage = latestTemplateWithLetterhead?.footerImage ?? SYSTEM_DEFAULT_FOOTER_IMAGE;
 
   const openCreate = () => {
     setForm({ name: "", description: "", content: "", variables: [] });
     setEditId(null);
     setCreateEditorContent("<p><br></p>");
     setShowCreateVarPanel(true);
-    setHeaderImage(defaultHeaderImage);
-    setFooterImage(defaultFooterImage);
+    setHeaderImage(resolvedDefaultHeaderImage);
+    setFooterImage(resolvedDefaultFooterImage);
     setShowModal(true);
     setEditorVersion((v) => v + 1);
   };
@@ -248,8 +246,8 @@ export default function TemplatesClient() {
         description: form.description,
         content,
         variables: vars,
-        headerImage: headerImage ?? defaultHeaderImage ?? null,
-        footerImage: footerImage ?? defaultFooterImage ?? null,
+        headerImage: headerImage ?? resolvedDefaultHeaderImage,
+        footerImage: footerImage ?? resolvedDefaultFooterImage,
       };
       const res = await fetch(url, {
         method, headers: { "Content-Type": "application/json" },
@@ -519,7 +517,7 @@ export default function TemplatesClient() {
                     </button>
                   )}
                 </div>
-                {(defaultHeaderImage || defaultFooterImage) && !editId && (
+                {!editId && (
                   <p className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-md">
                     Timbrado padrao do sistema aplicado automaticamente
                   </p>

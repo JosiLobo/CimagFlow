@@ -4,6 +4,25 @@ import { authOptions } from "@/lib/auth-options";
 import prisma from "@/lib/db";
 import { auditLog } from "@/lib/audit";
 
+const SYSTEM_DEFAULT_HEADER_IMAGE = process.env.NEXT_PUBLIC_SYSTEM_HEADER_IMAGE || "/system-header.svg";
+const SYSTEM_DEFAULT_FOOTER_IMAGE = process.env.NEXT_PUBLIC_SYSTEM_FOOTER_IMAGE || "/system-footer.svg";
+
+async function resolveUserLetterheadDefaults(userId: string) {
+  const latestWithLetterhead = await prisma.template.findFirst({
+    where: {
+      createdBy: userId,
+      OR: [{ headerImage: { not: null } }, { footerImage: { not: null } }],
+    },
+    orderBy: { updatedAt: "desc" },
+    select: { headerImage: true, footerImage: true },
+  });
+
+  return {
+    headerImage: latestWithLetterhead?.headerImage ?? SYSTEM_DEFAULT_HEADER_IMAGE,
+    footerImage: latestWithLetterhead?.footerImage ?? SYSTEM_DEFAULT_FOOTER_IMAGE,
+  };
+}
+
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
@@ -64,8 +83,17 @@ export async function POST(req: Request) {
         const body = await req.json();
         const { name, description, content, variables, headerImage, footerImage } = body;
         if (!name || !content) return NextResponse.json({ error: "Nome e conteúdo obrigatórios" }, { status: 400 });
+        const defaults = await resolveUserLetterheadDefaults(userByEmail.id);
         const template = await prisma.template.create({
-          data: { name, description: description ?? null, content, variables: variables ?? [], headerImage: headerImage ?? null, footerImage: footerImage ?? null, createdBy: userByEmail.id },
+          data: {
+            name,
+            description: description ?? null,
+            content,
+            variables: variables ?? [],
+            headerImage: headerImage ?? defaults.headerImage,
+            footerImage: footerImage ?? defaults.footerImage,
+            createdBy: userByEmail.id,
+          },
         });
 
         await auditLog(req as any, {
@@ -88,8 +116,18 @@ export async function POST(req: Request) {
 
     if (!name || !content) return NextResponse.json({ error: "Nome e conteúdo obrigatórios" }, { status: 400 });
 
+    const defaults = await resolveUserLetterheadDefaults(userId);
+
     const template = await prisma.template.create({
-      data: { name, description: description ?? null, content, variables: variables ?? [], headerImage: headerImage ?? null, footerImage: footerImage ?? null, createdBy: userId },
+      data: {
+        name,
+        description: description ?? null,
+        content,
+        variables: variables ?? [],
+        headerImage: headerImage ?? defaults.headerImage,
+        footerImage: footerImage ?? defaults.footerImage,
+        createdBy: userId,
+      },
     });
 
     await auditLog(req as any, {
