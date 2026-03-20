@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Upload, FileText, Users, Settings, ChevronRight, ChevronLeft, Check, X, Search, Loader2, Wand2, FolderOpen, ArrowRight } from "lucide-react";
@@ -20,10 +20,13 @@ const steps = [
   { id: 3, label: "Configurações", icon: Settings },
 ];
 
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+
 export default function NovoDocumentoClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const folderId = searchParams.get("folderId");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [title, setTitle] = useState("");
@@ -44,25 +47,75 @@ export default function NovoDocumentoClient() {
   const [reminderDays, setReminderDays] = useState(3);
 
   const handleFileChange = async (f: File) => {
+    if (f.type !== "application/pdf") {
+      alert("Apenas arquivos PDF são permitidos.");
+      return;
+    }
+
+    if (f.size > MAX_FILE_SIZE) {
+      alert("Arquivo muito grande. Tamanho máximo permitido: 20MB.");
+      return;
+    }
+
     setFile(f);
     setUploading(true);
     try {
-      const presignRes = await fetch("/api/upload/presigned", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileName: f.name, contentType: f.type, isPublic: true }),
-      });
-      const { uploadUrl, cloud_storage_path } = await presignRes.json();
-      const urlObj = new URL(uploadUrl);
-      const signedHeaders = urlObj.searchParams.get("X-Amz-SignedHeaders") ?? "";
-      const uploadHeaders: Record<string, string> = { "Content-Type": f.type };
-      if (signedHeaders.includes("content-disposition")) uploadHeaders["Content-Disposition"] = "attachment";
-      await fetch(uploadUrl, { method: "PUT", headers: uploadHeaders, body: f });
-      setUploadedPath(cloud_storage_path);
+      // 1) Prefer presigned upload
+      let uploadedCloudPath = "";
+      try {
+        const presignRes = await fetch("/api/upload/presigned", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fileName: f.name, contentType: f.type, isPublic: true }),
+        });
+
+        if (presignRes.ok) {
+          const presignData = await presignRes.json();
+          const uploadUrl = presignData.uploadUrl as string;
+          uploadedCloudPath = presignData.cloud_storage_path || "";
+
+          const urlObj = new URL(uploadUrl);
+          const signedHeaders = urlObj.searchParams.get("X-Amz-SignedHeaders") ?? "";
+          const uploadHeaders: Record<string, string> = { "Content-Type": f.type };
+          if (signedHeaders.includes("content-disposition")) uploadHeaders["Content-Disposition"] = "attachment";
+
+          const uploadRes = await fetch(uploadUrl, { method: "PUT", headers: uploadHeaders, body: f });
+          if (!uploadRes.ok) {
+            uploadedCloudPath = "";
+          }
+        }
+      } catch {
+        uploadedCloudPath = "";
+      }
+
+      // 2) Fallback to direct-public endpoint
+      if (!uploadedCloudPath) {
+        const formData = new FormData();
+        formData.append("file", f);
+        const directRes = await fetch("/api/upload/direct-public", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!directRes.ok) {
+          const err = await directRes.json().catch(() => ({}));
+          throw new Error(err.error || "Erro ao fazer upload do arquivo");
+        }
+
+        const directData = await directRes.json();
+        uploadedCloudPath = directData.cloud_storage_path || directData.fileUrl || "";
+      }
+
+      if (!uploadedCloudPath) {
+        throw new Error("Não foi possível obter o caminho do arquivo enviado.");
+      }
+
+      setUploadedPath(uploadedCloudPath);
     } catch (e) {
       console.error(e);
-      alert("Erro ao fazer upload");
+      alert(e instanceof Error ? e.message : "Erro ao fazer upload");
       setFile(null);
+      setUploadedPath("");
     } finally {
       setUploading(false);
     }
@@ -91,6 +144,21 @@ export default function NovoDocumentoClient() {
 
   const addSigner = (s: any) => { setSelectedSigners([...selectedSigners, s]); setSignerResults([]); setSignerSearch(""); };
   const removeSigner = (id: string) => setSelectedSigners(selectedSigners.filter((s) => s.id !== id));
+  const openUploadPicker = () => {
+    setUseTemplate(false);
+    fileInputRef.current?.click();
+  };
+  const handleBack = () => {
+    if (step > 1) {
+      setStep(step - 1);
+      return;
+    }
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+      return;
+    }
+    router.push("/documentos");
+  };
 
   const handleSubmit = async (andSend: boolean) => {
     setSubmitting(true);
@@ -205,31 +273,49 @@ export default function NovoDocumentoClient() {
                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] text-sm resize-none" />
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setUseTemplate(false)}
+              <button onClick={openUploadPicker}
                 className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-all ${!useTemplate ? "bg-[#1E3A5F] text-white border-[#1E3A5F]" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
-                <Upload className="w-4 h-4 inline mr-1" /> Upload PDF
+                <Upload className="w-4 h-4 inline mr-1" /> Upload
               </button>
               <button onClick={async () => { setUseTemplate(true); await loadTemplates(); }}
                 className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-all ${useTemplate ? "bg-[#1E3A5F] text-white border-[#1E3A5F]" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
                 <Wand2 className="w-4 h-4 inline mr-1" /> Usar Template
               </button>
             </div>
+            <input
+              ref={fileInputRef}
+              id="file-input"
+              type="file"
+              accept=".pdf"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleFileChange(f);
+              }}
+            />
             {!useTemplate && (
-              <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center hover:border-[#1E3A5F] transition-colors cursor-pointer"
-                onClick={() => document.getElementById("file-input")?.click()}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFileChange(f); }}>
-                <input id="file-input" type="file" accept=".pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileChange(f); }} />
+              <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
                 {uploading ? (
-                  <><div className="w-8 h-8 border-2 border-[#1E3A5F] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                  <p className="text-sm text-gray-500">Enviando arquivo...</p></>
+                  <div className="flex items-center gap-3">
+                    <div className="w-5 h-5 border-2 border-[#1E3A5F] border-t-transparent rounded-full animate-spin" />
+                    <p className="text-sm text-gray-600">Enviando arquivo...</p>
+                  </div>
                 ) : file ? (
-                  <><FileText className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-gray-700">{file.name}</p>
-                  <p className="text-xs text-gray-400">{(file.size / 1024 / 1024).toFixed(2)} MB ✓ Upload concluído</p></>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-800 truncate">{file.name}</p>
+                      <p className="text-xs text-emerald-600">{(file.size / 1024 / 1024).toFixed(2)} MB - upload concluído</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={openUploadPicker}
+                      className="px-3 py-1.5 text-xs rounded-lg border border-gray-300 hover:bg-white"
+                    >
+                      Trocar
+                    </button>
+                  </div>
                 ) : (
-                  <><Upload className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500">Arraste um PDF ou clique para selecionar</p></>
+                  <p className="text-sm text-gray-500">Nenhum arquivo selecionado. Clique em Upload para anexar um PDF.</p>
                 )}
               </div>
             )}
@@ -404,8 +490,8 @@ export default function NovoDocumentoClient() {
         )}
       </AnimatePresence>
       <div className="flex items-center justify-between">
-        <button onClick={() => setStep(Math.max(1, step - 1))} disabled={step === 1}
-          className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 disabled:opacity-40 transition-colors text-sm font-medium">
+        <button onClick={handleBack}
+          className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors text-sm font-medium">
           <ChevronLeft className="w-4 h-4" /> Voltar
         </button>
         <div className="flex gap-2">

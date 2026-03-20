@@ -109,6 +109,8 @@ export default function EditaisClient() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [viewingBid, setViewingBid] = useState<Bid | null>(null);
+  const [expandedCardPreviewId, setExpandedCardPreviewId] = useState<string | null>(null);
+  const [autoFilledFields, setAutoFilledFields] = useState<Array<{ label: string; value: string }>>([]);
 
   const fetchBids = useCallback(async () => {
     setLoading(true);
@@ -179,17 +181,39 @@ export default function EditaisClient() {
         const suggestions = await response.json();
 
         const filled: string[] = [];
+        const filledDetails: Array<{ label: string; value: string }> = [];
         setFormData(prev => {
           const updated = { ...prev };
-          if (!prev.number && suggestions.number) { updated.number = suggestions.number; filled.push("Número"); }
+          if (!prev.number && suggestions.number) {
+            updated.number = suggestions.number;
+            filled.push("Número do Processo");
+            filledDetails.push({ label: "Número do Processo", value: suggestions.number });
+          }
           if (!prev.title && suggestions.title) { updated.title = suggestions.title; filled.push("Título"); }
           if (!prev.description && suggestions.description) { updated.description = suggestions.description; filled.push("Descrição"); }
-          if (prev.type === "PREGAO_ELETRONICO" && suggestions.type) { updated.type = suggestions.type; filled.push("Modalidade"); }
-          if (!prev.openingDate && suggestions.openingDate) { updated.openingDate = suggestions.openingDate; filled.push("Data Abertura"); }
-          if (!prev.closingDate && suggestions.closingDate) { updated.closingDate = suggestions.closingDate; filled.push("Data Encerramento"); }
-          if (!prev.value && suggestions.value) { updated.value = suggestions.value; filled.push("Valor"); }
+          if (prev.type === "PREGAO_ELETRONICO" && suggestions.type) {
+            updated.type = suggestions.type;
+            filled.push("Modalidade");
+            filledDetails.push({ label: "Modalidade", value: getTypeLabel(suggestions.type) });
+          }
+          if (!prev.openingDate && suggestions.openingDate) {
+            updated.openingDate = suggestions.openingDate;
+            filled.push("Data de Abertura");
+            filledDetails.push({ label: "Data de Abertura", value: suggestions.openingDate });
+          }
+          if (!prev.closingDate && suggestions.closingDate) {
+            updated.closingDate = suggestions.closingDate;
+            filled.push("Data de Encerramento");
+            filledDetails.push({ label: "Data de Encerramento", value: suggestions.closingDate });
+          }
+          if (!prev.value && suggestions.value) {
+            updated.value = suggestions.value;
+            filled.push("Valor Global");
+            filledDetails.push({ label: "Valor Global", value: suggestions.value });
+          }
           return updated;
         });
+        setAutoFilledFields(filledDetails);
 
         if (filled.length > 0) {
           toast.success(`PDF analisado! Preenchido: ${filled.join(", ")}`);
@@ -210,36 +234,56 @@ export default function EditaisClient() {
 
     setUploadingFile(true);
     try {
-      const presignedRes = await fetch("/api/upload/presigned", {
+      // 1) Try presigned upload (faster path)
+      try {
+        const presignedRes = await fetch("/api/upload/presigned", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileName: selectedFile.name,
+            contentType: selectedFile.type,
+            isPublic: true,
+          }),
+        });
+
+        if (presignedRes.ok) {
+          const { uploadUrl, fileUrl } = await presignedRes.json();
+          const uploadRes = await fetch(uploadUrl, {
+            method: "PUT",
+            body: selectedFile,
+            headers: { "Content-Type": selectedFile.type },
+          });
+
+          if (uploadRes.ok) {
+            return { fileUrl, fileName: selectedFile.name, fileSize: selectedFile.size };
+          }
+        }
+      } catch {
+        // fallback below
+      }
+
+      // 2) Fallback upload via backend (handles S3/local internally)
+      const fallbackFormData = new FormData();
+      fallbackFormData.append("file", selectedFile);
+      const fallbackRes = await fetch("/api/upload/direct-public", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fileName: selectedFile.name,
-          contentType: selectedFile.type,
-          isPublic: true,
-        }),
+        body: fallbackFormData,
       });
 
-      if (!presignedRes.ok) {
-        throw new Error("Erro ao gerar URL de upload");
+      if (!fallbackRes.ok) {
+        const err = await fallbackRes.json().catch(() => ({}));
+        throw new Error(err.error || "Erro ao enviar arquivo (upload direto)");
       }
 
-      const { uploadUrl, fileUrl } = await presignedRes.json();
-
-      const uploadRes = await fetch(uploadUrl, {
-        method: "PUT",
-        body: selectedFile,
-        headers: { "Content-Type": selectedFile.type },
-      });
-
-      if (!uploadRes.ok) {
-        throw new Error("Erro ao enviar arquivo para o armazenamento");
-      }
-
-      return { fileUrl, fileName: selectedFile.name, fileSize: selectedFile.size };
+      const fallbackData = await fallbackRes.json();
+      return {
+        fileUrl: fallbackData.fileUrl,
+        fileName: fallbackData.fileName || selectedFile.name,
+        fileSize: selectedFile.size,
+      };
     } catch (error) {
       console.error("Erro ao fazer upload:", error);
-      toast.error("Erro ao enviar arquivo");
+      toast.error(error instanceof Error ? error.message : "Erro ao enviar arquivo");
       return null;
     } finally {
       setUploadingFile(false);
@@ -272,8 +316,8 @@ export default function EditaisClient() {
             fileSize: uploaded.fileSize.toString(),
           };
         } else {
-          toast.error("Erro ao enviar arquivo. Salvando edital sem anexo.");
-          fileData = { fileUrl: "", fileName: "", fileSize: "" };
+          toast.error("Erro ao enviar arquivo. Corrija o upload para salvar o edital com anexo.");
+          return;
         }
       }
 
@@ -338,6 +382,7 @@ export default function EditaisClient() {
 
   const openEditModal = (bid: Bid) => {
     setEditingBid(bid);
+    setAutoFilledFields([]);
     setFormData({
       number: bid.number,
       title: bid.title,
@@ -376,6 +421,7 @@ export default function EditaisClient() {
     setFileSize(null);
     setAnalyzingPdf(false);
     setUploadingFile(false);
+    setAutoFilledFields([]);
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
     setShowPreview(false);
@@ -393,6 +439,14 @@ export default function EditaisClient() {
   const formatCurrency = (value: number | null) => {
     if (!value) return "-";
     return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+  };
+
+  const formatFileSize = (bytes: number | null) => {
+    if (!bytes || bytes <= 0) return "-";
+    const mb = bytes / (1024 * 1024);
+    if (mb >= 1) return `${mb.toFixed(2)} MB`;
+    const kb = bytes / 1024;
+    return `${kb.toFixed(0)} KB`;
   };
 
   return (
@@ -502,6 +556,16 @@ export default function EditaisClient() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
+                            setExpandedCardPreviewId(prev => prev === bid.id ? null : bid.id);
+                          }}
+                          className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700"
+                        >
+                          <Eye className="w-4 h-4" />
+                          <span>{expandedCardPreviewId === bid.id ? "Ocultar PDF" : "Ver no card"}</span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setPreviewUrl(bid.fileUrl);
                             setFormData(prev => ({ ...prev, fileName: bid.fileName || "" }));
                             setShowPreview(true);
@@ -523,6 +587,29 @@ export default function EditaisClient() {
                       </div>
                     )}
                   </div>
+                  {bid.fileUrl && expandedCardPreviewId === bid.id && (
+                    <div className="mt-4 rounded-xl border border-gray-200 overflow-hidden bg-gray-50">
+                      <div className="px-3 py-2 text-xs text-gray-600 bg-white border-b border-gray-200 flex items-center justify-between">
+                        <span className="font-medium truncate">{bid.fileName || "Documento do edital"}</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPreviewUrl(bid.fileUrl);
+                            setFormData(prev => ({ ...prev, fileName: bid.fileName || "" }));
+                            setShowPreview(true);
+                          }}
+                          className="text-blue-600 hover:underline"
+                        >
+                          Expandir
+                        </button>
+                      </div>
+                      <iframe
+                        src={bid.fileUrl}
+                        className="w-full h-64"
+                        title={`Prévia ${bid.number}`}
+                      />
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <button onClick={(e) => { e.stopPropagation(); openEditModal(bid); }} className="p-2 hover:bg-gray-100 rounded-lg">
@@ -563,7 +650,7 @@ export default function EditaisClient() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Número *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Número do Processo *</label>
                     <input type="text" value={formData.number} onChange={(e) => setFormData({ ...formData, number: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500" required placeholder="001/2024" />
                   </div>
                   <div>
@@ -672,6 +759,23 @@ export default function EditaisClient() {
                           />
                         </div>
                       )}
+
+                      {!analyzingPdf && autoFilledFields.length > 0 && (
+                        <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4">
+                          <div className="flex items-center gap-2 mb-3">
+                            <FileCheck className="w-4 h-4 text-emerald-600" />
+                            <p className="text-sm font-semibold text-emerald-800">Campos extraídos automaticamente do edital</p>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {autoFilledFields.map((item) => (
+                              <div key={`${item.label}-${item.value}`} className="rounded-lg bg-white border border-emerald-100 px-3 py-2">
+                                <p className="text-[11px] uppercase tracking-wider text-emerald-700 font-semibold">{item.label}</p>
+                                <p className="text-sm text-gray-700 truncate" title={item.value}>{item.value}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -693,7 +797,7 @@ export default function EditaisClient() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Valor Estimado (R$)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Valor Global (R$)</label>
                   <input type="number" step="0.01" value={formData.value} onChange={(e) => setFormData({ ...formData, value: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="0.00" />
                 </div>
                 <div className="flex gap-3 pt-2">
@@ -834,27 +938,48 @@ export default function EditaisClient() {
                 <div className="flex-1 flex flex-col min-h-0">
                   {viewingBid.fileUrl ? (
                     <>
-                      <div className="flex items-center justify-between px-5 py-2.5 bg-gray-50 border-b border-gray-200 flex-shrink-0">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Paperclip className="w-4 h-4" />
-                          <span className="font-medium">{viewingBid.fileName || "Documento do Edital"}</span>
+                      <div className="px-5 py-3 bg-gray-50 border-b border-gray-200 flex-shrink-0 space-y-2">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 text-sm text-gray-600 min-w-0">
+                            <Paperclip className="w-4 h-4 flex-shrink-0" />
+                            <span className="font-medium truncate">{viewingBid.fileName || "Documento do Edital"}</span>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <button
+                              onClick={() => {
+                                setPreviewUrl(viewingBid.fileUrl);
+                                setFormData(prev => ({ ...prev, fileName: viewingBid.fileName || "" }));
+                                setShowPreview(true);
+                              }}
+                              className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                            >
+                              <Eye className="w-3 h-3" /> Tela cheia
+                            </button>
+                            <a
+                              href={viewingBid.fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-emerald-700 hover:underline flex items-center gap-1"
+                            >
+                              <Download className="w-3 h-3" /> Nova aba
+                            </a>
+                          </div>
                         </div>
-                        <button
-                          onClick={() => {
-                            setPreviewUrl(viewingBid.fileUrl);
-                            setFormData(prev => ({ ...prev, fileName: viewingBid.fileName || "" }));
-                            setShowPreview(true);
-                          }}
-                          className="text-xs text-blue-600 hover:underline flex items-center gap-1"
-                        >
-                          <Eye className="w-3 h-3" /> Tela cheia
-                        </button>
+                        <div className="flex items-center gap-3 text-[11px] text-gray-500">
+                          <span className="px-2 py-0.5 rounded-full bg-white border border-gray-200">PDF</span>
+                          <span>Tamanho: {formatFileSize(viewingBid.fileSize)}</span>
+                          <span>Cadastrado: {format(new Date(viewingBid.createdAt), "dd/MM/yyyy", { locale: ptBR })}</span>
+                        </div>
                       </div>
-                      <iframe
-                        src={viewingBid.fileUrl}
-                        className="flex-1 w-full bg-white min-h-[400px]"
-                        title="Documento do Edital"
-                      />
+                      <div className="flex-1 p-3 bg-gray-100/70">
+                        <div className="w-full h-full rounded-xl border border-gray-200 overflow-hidden bg-white">
+                          <iframe
+                            src={viewingBid.fileUrl}
+                            className="w-full h-full min-h-[420px]"
+                            title="Documento do Edital"
+                          />
+                        </div>
+                      </div>
                     </>
                   ) : (
                     <div className="flex-1 flex flex-col items-center justify-center py-12 text-gray-400">

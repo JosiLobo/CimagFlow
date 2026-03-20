@@ -6,10 +6,6 @@ import { resolveUserId } from "@/lib/resolve-user";
 
 export const dynamic = "force-dynamic";
 
-// In-memory cache with TTL
-let cachedData: { data: any; period: number; timestamp: number } | null = null;
-const CACHE_TTL = 300_000; // 5 minutes
-
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -23,40 +19,10 @@ export async function GET(req: NextRequest) {
     startDate.setDate(startDate.getDate() - periodDays);
 
     const userId = await resolveUserId(session) || (session.user as any).id;
-    const userRole = (session.user as any).role;
-    const isAdmin = userRole === "ADMIN";
     const userEmail = session.user?.email ?? "";
-
-    // Check cache (shared across users for aggregate data, personalized fields added after)
-    const now = Date.now();
-    if (cachedData && cachedData.period === periodDays && now - cachedData.timestamp < CACHE_TTL) {
-      // Only refresh user-specific fields
-      const pendingToSign = await prisma.documentSigner.count({
-        where: { signer: { email: userEmail }, status: "PENDENTE" },
-      });
-      const recentDocs = await prisma.document.findMany({
-        where: isAdmin ? {} : { createdBy: userId },
-        orderBy: { createdAt: "desc" },
-        take: 8,
-        select: {
-          id: true, title: true, status: true, createdAt: true,
-          signers: { select: { status: true } },
-        },
-      });
-      const result = {
-        ...cachedData.data,
-        overview: { ...cachedData.data.overview, pendingToSign },
-        recentDocs: recentDocs.map((d) => ({
-          id: d.id, title: d.title, status: d.status,
-          createdAt: d.createdAt.toISOString(),
-          signersCount: d.signers.length,
-          signedCount: d.signers.filter((s) => s.status === "ASSINADO").length,
-        })),
-      };
-      return NextResponse.json(result, {
-        headers: { "Cache-Control": "private, max-age=30" },
-      });
-    }
+    const docsWhere = { createdBy: userId };
+    const templatesWhere = { createdBy: userId };
+    const foldersWhere = { createdBy: userId };
 
     // ─── Batch 1: All counts + groupBys in parallel ───
     const sixMonthsAgo = new Date();
@@ -77,6 +43,7 @@ export async function GET(req: NextRequest) {
       totalTemplates, totalFolders,
       totalUsers, activeUsers,
       totalMinutes, minutesByStatus,
+      totalCredenciamentos,
       totalAdhesions, adhesionsByStatus,
       pendingToSign, totalSignatures, signaturesByStatus,
       publicDemands, internalDemands,
@@ -85,10 +52,10 @@ export async function GET(req: NextRequest) {
       docsByMonth, demandsByMonth,
       recentActivity,
     ] = await Promise.all([
-      prisma.document.count(),
-      prisma.document.groupBy({ by: ["status"], _count: true }),
-      prisma.document.count({ where: { createdAt: { gte: startDate } } }),
-      prisma.document.count({ where: { createdAt: { gte: previousPeriodStart, lt: previousPeriodEnd } } }),
+      prisma.document.count({ where: docsWhere }),
+      prisma.document.groupBy({ by: ["status"], where: docsWhere, _count: true }),
+      prisma.document.count({ where: { ...docsWhere, createdAt: { gte: startDate } } }),
+      prisma.document.count({ where: { ...docsWhere, createdAt: { gte: previousPeriodStart, lt: previousPeriodEnd } } }),
       prisma.demand.count(),
       prisma.demand.groupBy({ by: ["status"], _count: true }),
       prisma.demand.groupBy({ by: ["priority"], _count: true }),
@@ -103,12 +70,13 @@ export async function GET(req: NextRequest) {
       prisma.company.count({ where: { isActive: true } }),
       prisma.signer.count(),
       prisma.signer.count({ where: { isActive: true } }),
-      prisma.template.count(),
-      prisma.folder.count(),
+      prisma.template.count({ where: templatesWhere }),
+      prisma.folder.count({ where: foldersWhere }),
       prisma.user.count(),
       prisma.user.count({ where: { isActive: true } }),
       prisma.minutesOfMeeting.count(),
       prisma.minutesOfMeeting.groupBy({ by: ["status"], _count: true }),
+      prisma.credenciamento.count(),
       prisma.minuteAdhesion.count(),
       prisma.minuteAdhesion.groupBy({ by: ["status"], _count: true }),
       prisma.documentSigner.count({ where: { signer: { email: userEmail }, status: "PENDENTE" } }),
@@ -131,7 +99,7 @@ export async function GET(req: NextRequest) {
       }),
       prisma.$queryRaw`
         SELECT DATE_TRUNC('month', "createdAt") as month, COUNT(*) as count
-        FROM documents WHERE "createdAt" >= ${sixMonthsAgo}
+        FROM documents WHERE "createdAt" >= ${sixMonthsAgo} AND "createdBy" = ${userId}
         GROUP BY DATE_TRUNC('month', "createdAt") ORDER BY month ASC
       ` as Promise<{ month: Date; count: bigint }[]>,
       prisma.$queryRaw`
@@ -153,7 +121,7 @@ export async function GET(req: NextRequest) {
         select: { id: true, name: true, city: true, state: true },
       }),
       prisma.document.findMany({
-        where: isAdmin ? {} : { createdBy: userId },
+        where: docsWhere,
         orderBy: { createdAt: "desc" },
         take: 5, // menos documentos recentes
         select: {
@@ -218,7 +186,9 @@ export async function GET(req: NextRequest) {
         folders: totalFolders,
         users: { total: totalUsers, active: activeUsers },
         minutes: totalMinutes,
+        credenciamentos: totalCredenciamentos,
         adhesions: totalAdhesions,
+        pedidos: publicDemands,
         pendingToSign,
         signatures: totalSignatures,
       },
@@ -264,11 +234,8 @@ export async function GET(req: NextRequest) {
       period: periodDays,
     };
 
-    // Update cache (exclude user-specific fields)
-    cachedData = { data: responseData, period: periodDays, timestamp: now };
-
     return NextResponse.json(responseData, {
-      headers: { "Cache-Control": "private, max-age=30" },
+      headers: { "Cache-Control": "private, no-store" },
     });
   } catch (error) {
     console.error("Erro ao buscar dashboard: - route.ts:256", error);

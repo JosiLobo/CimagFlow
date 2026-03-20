@@ -11,6 +11,14 @@ export async function POST(req: Request) {
     if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
     const { cloud_storage_path, isPublic } = await req.json();
+
+    // If already a direct URL or local public path, return as-is.
+    if (typeof cloud_storage_path === "string") {
+      if (cloud_storage_path.startsWith("http://") || cloud_storage_path.startsWith("https://") || cloud_storage_path.startsWith("/")) {
+        return NextResponse.json({ url: cloud_storage_path });
+      }
+    }
+
     const url = await getFileUrl(cloud_storage_path, isPublic ?? true);
     return NextResponse.json({ url });
   } catch (error) {

@@ -6,6 +6,7 @@ import {
   FileText,
   Plus,
   Building2,
+  ClipboardList,
   Clock,
   Loader2,
   CheckCircle2,
@@ -54,7 +55,9 @@ interface DashboardData {
     folders: number;
     users: { total: number; active: number };
     minutes: number;
+    credenciamentos: number;
     adhesions: number;
+    pedidos: number;
     pendingToSign: number;
     signatures: number;
   };
@@ -360,7 +363,13 @@ export default function DashboardClient({ userName, userRole }: { userName: stri
   const { data, isLoading: loading, mutate } = useSWR<DashboardData>(
     `/api/dashboard?period=${period}`,
     fetcher,
-    { dedupingInterval: 30_000, revalidateOnFocus: false, keepPreviousData: true }
+    {
+      dedupingInterval: 5_000,
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      refreshInterval: 30_000,
+      keepPreviousData: true,
+    }
   );
 
   // Load recharts asynchronously after first paint
@@ -531,12 +540,13 @@ export default function DashboardClient({ userName, userRole }: { userName: stri
           <Zap className="w-5 h-5 text-amber-600" />
           <h3 className="font-semibold text-gray-900">Estatísticas Rápidas</h3>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-4">
           {[
             { label: "Assinaturas", value: o.signatures, icon: FileSignature, color: "text-emerald-600", bg: "bg-emerald-50", link: "/documentos" },
             { label: "Assinantes", value: o.signers.total, icon: Users, color: "text-blue-600", bg: "bg-blue-50", link: "/assinantes" },
             { label: "Atas", value: o.minutes, icon: BookOpen, color: "text-purple-600", bg: "bg-purple-50", link: "/atas" },
-            { label: "Adesões", value: o.adhesions, icon: Handshake, color: "text-amber-600", bg: "bg-amber-50", link: "/atas" },
+            { label: "Credenciamentos", value: o.credenciamentos, icon: CheckCircle2, color: "text-emerald-700", bg: "bg-emerald-50", link: "/credenciamentos" },
+            { label: "Pedidos", value: o.pedidos, icon: ClipboardList, color: "text-cyan-700", bg: "bg-cyan-50", link: "/demandas" },
             { label: "Modelos", value: o.templates, icon: FileText, color: "text-indigo-600", bg: "bg-indigo-50", link: "/templates" },
             { label: "Pastas", value: o.folders, icon: FolderOpen, color: "text-orange-600", bg: "bg-orange-50", link: "/pastas" },
             { label: "Usuários", value: o.users.total, icon: Users, color: "text-teal-600", bg: "bg-teal-50", link: "/colaboradores" },

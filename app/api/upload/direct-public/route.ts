@@ -20,7 +20,7 @@ const ALLOWED_TYPES = [
   "application/x-rar-compressed",
 ];
 
-const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_SIZE = 20 * 1024 * 1024; // 20MB
 
 // Upload direto: tenta S3 primeiro, fallback para armazenamento local
 export async function POST(req: Request) {
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
 
     if (file.size > MAX_SIZE) {
       return NextResponse.json(
-        { error: "Arquivo excede o tamanho máximo de 10MB" },
+        { error: "Arquivo excede o tamanho máximo de 20MB" },
         { status: 400 }
       );
     }
