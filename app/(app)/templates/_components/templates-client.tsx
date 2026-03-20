@@ -51,6 +51,8 @@ export default function TemplatesClient() {
   const [showCreateVarPanel, setShowCreateVarPanel] = useState(false);
   const [headerImage, setHeaderImage] = useState<string | null>(null);
   const [footerImage, setFooterImage] = useState<string | null>(null);
+  const [defaultHeaderImage, setDefaultHeaderImage] = useState<string | null>(null);
+  const [defaultFooterImage, setDefaultFooterImage] = useState<string | null>(null);
   const [uploadingHeader, setUploadingHeader] = useState(false);
   const [uploadingFooter, setUploadingFooter] = useState(false);
   const headerInputRef = useRef<HTMLInputElement>(null);
@@ -73,13 +75,19 @@ export default function TemplatesClient() {
     fetchTemplates();
   }, [fetchTemplates]);
 
+  useEffect(() => {
+    const source = templates.find((t) => t.headerImage || t.footerImage);
+    setDefaultHeaderImage(source?.headerImage ?? null);
+    setDefaultFooterImage(source?.footerImage ?? null);
+  }, [templates]);
+
   const openCreate = () => {
     setForm({ name: "", description: "", content: "", variables: [] });
     setEditId(null);
-    setCreateEditorContent("");
+    setCreateEditorContent("<p><br></p>");
     setShowCreateVarPanel(true);
-    setHeaderImage(null);
-    setFooterImage(null);
+    setHeaderImage(defaultHeaderImage);
+    setFooterImage(defaultFooterImage);
     setShowModal(true);
     setEditorVersion((v) => v + 1);
   };
@@ -222,7 +230,14 @@ export default function TemplatesClient() {
     try {
       const url = editId ? `/api/templates/${editId}` : "/api/templates";
       const method = editId ? "PATCH" : "POST";
-      const payload = { name: form.name, description: form.description, content, variables: vars, headerImage, footerImage };
+      const payload = {
+        name: form.name,
+        description: form.description,
+        content,
+        variables: vars,
+        headerImage: headerImage ?? defaultHeaderImage ?? null,
+        footerImage: footerImage ?? defaultFooterImage ?? null,
+      };
       const res = await fetch(url, {
         method, headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -444,24 +459,28 @@ export default function TemplatesClient() {
                   <input type="text" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Descrição (opcional)"
                     className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] text-sm" />
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2">
                   <input ref={headerInputRef} type="file" accept={HEADER_ACCEPT} className="hidden"
                     onChange={(e) => { if (e.target.files?.[0]) uploadHeaderImage(e.target.files[0]); e.target.value = ""; }} />
                   <input ref={footerInputRef} type="file" accept={HEADER_ACCEPT} className="hidden"
                     onChange={(e) => { if (e.target.files?.[0]) uploadFooterImage(e.target.files[0]); e.target.value = ""; }} />
                   {headerImage ? (
-                    <div className="flex items-center gap-1">
-                      <div className="w-7 h-7 rounded border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center" title="Cabeçalho">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-28 h-14 rounded-lg border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center" title="Prévia do cabeçalho">
                         <img src={headerImage} alt="Cabeçalho" className="w-full h-full object-contain" />
                       </div>
+                      <button onClick={() => headerInputRef.current?.click()} title="Trocar cabeçalho"
+                        className="p-1.5 text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded transition-colors">
+                        <ImagePlus className="w-3.5 h-3.5" />
+                      </button>
                       <button onClick={() => setHeaderImage(null)} title="Remover cabeçalho"
-                        className="p-0.5 text-red-400 hover:text-red-600 rounded transition-colors">
-                        <X className="w-3 h-3" />
+                        className="p-1 text-red-400 hover:text-red-600 rounded transition-colors">
+                        <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ) : (
                     <button onClick={() => headerInputRef.current?.click()} disabled={uploadingHeader}
-                      className="flex items-center gap-1 px-2 py-1 text-[11px] bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-lg transition-colors font-medium disabled:opacity-50"
+                      className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-lg transition-colors font-medium disabled:opacity-50"
                       title="Cabeçalho do timbrado">
                       {uploadingHeader ? <Loader2 className="w-3 h-3 animate-spin" /> : <ImagePlus className="w-3 h-3" />}
                       Cabeçalho
@@ -469,7 +488,7 @@ export default function TemplatesClient() {
                   )}
                   <div className="w-px h-5 bg-gray-200" />
                   {footerImage ? (
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                       <div className="w-7 h-7 rounded border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center" title="Rodapé">
                         <img src={footerImage} alt="Rodapé" className="w-full h-full object-contain" />
                       </div>
@@ -487,6 +506,11 @@ export default function TemplatesClient() {
                     </button>
                   )}
                 </div>
+                {(defaultHeaderImage || defaultFooterImage) && !editId && (
+                  <p className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-md">
+                    Timbrado padrao do sistema aplicado automaticamente
+                  </p>
+                )}
               </div>
 
               {/* Formatting Toolbar */}
@@ -589,16 +613,18 @@ export default function TemplatesClient() {
               <div className="flex-1 overflow-hidden flex">
                 {/* Document Area */}
                 <div className="flex-1 overflow-y-auto bg-gray-100 p-4 sm:p-8">
-                  <div className="flex flex-col mx-auto bg-white shadow-lg rounded-sm max-w-3xl" style={{ minHeight: "1123px" }}>
+                  <div className="relative flex flex-col mx-auto bg-white shadow-lg rounded-sm max-w-3xl overflow-hidden" style={{ minHeight: "1123px" }}>
                     {headerImage && (
-                      <img key="header-img" src={headerImage} alt="Cabeçalho" className="w-full h-auto pointer-events-none select-none flex-shrink-0" draggable={false} />
+                      <div className="absolute inset-x-0 top-0 z-10 h-36 bg-white pointer-events-none select-none">
+                        <img key="header-img" src={headerImage} alt="Cabeçalho" className="w-full h-full object-contain" draggable={false} />
+                      </div>
                     )}
                     <div
                       key="create-editor"
                       ref={createEditorRef}
                       contentEditable
                       suppressContentEditableWarning
-                      className="outline-none px-12 py-8 flex-1 text-gray-800 text-[14px] leading-relaxed"
+                      className={`outline-none px-12 flex-1 text-gray-800 text-[14px] leading-relaxed ${headerImage ? "pt-44" : "pt-8"} ${footerImage ? "pb-32" : "pb-8"}`}
                       style={{
                         fontFamily: "'Times New Roman', 'Georgia', serif",
                       }}
@@ -607,7 +633,9 @@ export default function TemplatesClient() {
                       data-placeholder="Comece a digitar o conteúdo do contrato aqui... Use o painel de variáveis para inserir campos dinâmicos como {prefeitura}, {empresa}, etc."
                     />
                     {footerImage && (
-                      <img key="footer-img" src={footerImage} alt="Rodapé" className="w-full h-auto pointer-events-none select-none flex-shrink-0 mt-auto" draggable={false} />
+                      <div className="absolute inset-x-0 bottom-0 z-10 h-24 bg-white pointer-events-none select-none">
+                        <img key="footer-img" src={footerImage} alt="Rodapé" className="w-full h-full object-contain" draggable={false} />
+                      </div>
                     )}
                   </div>
                 </div>
@@ -873,10 +901,12 @@ export default function TemplatesClient() {
               <div className="flex-1 overflow-hidden flex">
                 {/* Document Area */}
                 <div className="flex-1 overflow-y-auto bg-gray-100 p-4 sm:p-8">
-                  <div className={`flex flex-col mx-auto bg-white shadow-lg rounded-sm ${editorFullscreen ? "max-w-4xl" : "max-w-3xl"}`}
+                  <div className={`relative flex flex-col mx-auto bg-white shadow-lg rounded-sm overflow-hidden ${editorFullscreen ? "max-w-4xl" : "max-w-3xl"}`}
                     style={{ minHeight: "1123px" }}>
                     {showPreview?.headerImage && (
-                      <img key="preview-header" src={showPreview.headerImage} alt="Cabeçalho" className="w-full h-auto pointer-events-none select-none flex-shrink-0" draggable={false} />
+                      <div className="absolute inset-x-0 top-0 z-10 h-36 bg-white pointer-events-none select-none">
+                        <img key="preview-header" src={showPreview.headerImage} alt="Cabeçalho" className="w-full h-full object-contain" draggable={false} />
+                      </div>
                     )}
                     {previewEditing ? (
                       <div
@@ -885,7 +915,7 @@ export default function TemplatesClient() {
                         contentEditable
                         suppressContentEditableWarning
                         dangerouslySetInnerHTML={{ __html: previewContent }}
-                        className="outline-none px-12 py-8 flex-1 text-gray-800 text-[14px] leading-relaxed"
+                        className={`outline-none px-12 flex-1 text-gray-800 text-[14px] leading-relaxed ${showPreview?.headerImage ? "pt-44" : "pt-8"} ${showPreview?.footerImage ? "pb-32" : "pb-8"}`}
                         style={{
                           fontFamily: "'Times New Roman', 'Georgia', serif",
                         }}
@@ -899,7 +929,7 @@ export default function TemplatesClient() {
                       />
                     ) : (
                       <div
-                        className="px-12 py-8 flex-1 text-gray-800 text-[14px] leading-relaxed whitespace-pre-wrap"
+                        className={`px-12 flex-1 text-gray-800 text-[14px] leading-relaxed whitespace-pre-wrap ${showPreview?.headerImage ? "pt-44" : "pt-8"} ${showPreview?.footerImage ? "pb-32" : "pb-8"}`}
                         style={{
                           fontFamily: "'Times New Roman', 'Georgia', serif",
                         }}
@@ -907,7 +937,9 @@ export default function TemplatesClient() {
                       />
                     )}
                     {showPreview?.footerImage && (
-                      <img src={showPreview.footerImage} alt="Rodapé" className="w-full h-auto pointer-events-none select-none flex-shrink-0 mt-auto" draggable={false} />
+                      <div className="absolute inset-x-0 bottom-0 z-10 h-24 bg-white pointer-events-none select-none">
+                        <img src={showPreview.footerImage} alt="Rodapé" className="w-full h-full object-contain" draggable={false} />
+                      </div>
                     )}
                   </div>
                 </div>
