@@ -35,8 +35,9 @@ export async function GET(request: NextRequest) {
         take: limit,
         orderBy: { name: "asc" },
         include: {
-          _count: { select: { signers: true } },
+          _count: { select: { signers: true, items: true } },
           bid: { select: { id: true, title: true, number: true } },
+          items: { orderBy: { name: "asc" } },
         },
       }),
       prisma.company.count({ where }),
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, tradeName, cnpj, address, city, state, phone, email, contactName, cep, number, complement, isCredenciada, bidId } = body;
+    const { name, tradeName, cnpj, address, city, state, phone, email, contactName, cep, number, complement, isCredenciada, bidId, items } = body;
 
     if (!name) {
       return NextResponse.json({ error: "Nome é obrigatório" }, { status: 400 });
@@ -80,7 +81,17 @@ export async function POST(request: NextRequest) {
         complement,
         isCredenciada: isCredenciada || false,
         bidId: bidId || null,
+        items: items?.length ? {
+          create: items.map((item: { name: string; description?: string; unit?: string; quantity?: number; unitPrice?: number }) => ({
+            name: item.name,
+            description: item.description || null,
+            unit: item.unit || "UN",
+            quantity: item.quantity ?? 1,
+            unitPrice: item.unitPrice ?? 0,
+          })),
+        } : undefined,
       },
+      include: { items: true },
     });
 
     await auditLog(request, {

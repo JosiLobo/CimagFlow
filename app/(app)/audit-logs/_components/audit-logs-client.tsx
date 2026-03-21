@@ -101,7 +101,7 @@ const actionLabels: Record<string, string> = {
 const entityLabels: Record<string, string> = {
   document: "Documento",
   signer: "Assinante",
-  template: "Template",
+  template: "Modelo",
   folder: "Pasta",
   prefecture: "Prefeitura",
   company: "Empresa",
@@ -205,7 +205,7 @@ export default function AuditLogsClient() {
                 <option value="">Todas</option>
                 <option value="document">Documento</option>
                 <option value="signer">Assinante</option>
-                <option value="template">Template</option>
+                <option value="template">Modelo</option>
                 <option value="folder">Pasta</option>
                 <option value="prefecture">Prefeitura</option>
                 <option value="company">Empresa</option>

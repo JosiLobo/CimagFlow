@@ -71,17 +71,23 @@ async function resolveUserId(session: any): Promise<string | null> {
   return null;
 }
 
+type RouteParams = { id: string } | Promise<{ id: string }>;
+
 // GET - Buscar template e dados relacionados para o formulário
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params }: { params: RouteParams }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+
+    const resolvedParams = await Promise.resolve(params);
+    const templateId = resolvedParams?.id;
+    if (!templateId) return NextResponse.json({ error: "ID do modelo inválido" }, { status: 400 });
 
     const userId = await resolveUserId(session);
     if (!userId) return NextResponse.json({ error: "Sessão inválida. Faça logout e login novamente." }, { status: 401 });
 
     const [template, prefectures, companies, bids, folders, signers, demands] = await Promise.all([
-      prisma.template.findUnique({ where: { id: params.id } }),
+      prisma.template.findUnique({ where: { id: templateId } }),
       prisma.prefecture.findMany({ orderBy: { name: "asc" } }),
       prisma.company.findMany({ orderBy: { name: "asc" }, include: { items: { orderBy: { name: "asc" } } } }),
       prisma.bid.findMany({ include: { prefecture: true }, orderBy: { createdAt: "desc" } }),
@@ -98,7 +104,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       }),
     ]);
 
-    if (!template) return NextResponse.json({ error: "Template não encontrado" }, { status: 404 });
+    if (!template) return NextResponse.json({ error: "Modelo não encontrado" }, { status: 404 });
 
     return NextResponse.json({ template, prefectures, companies, bids, folders, signers, demands });
   } catch (error) {
@@ -108,10 +114,14 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 }
 
 // POST - Criar documento a partir do modelo
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: RouteParams }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+
+    const resolvedParams = await Promise.resolve(params);
+    const templateId = resolvedParams?.id;
+    if (!templateId) return NextResponse.json({ error: "ID do modelo inválido" }, { status: 400 });
 
     const userId = await resolveUserId(session);
     if (!userId) return NextResponse.json({ error: "Sessão inválida. Faça logout e login novamente." }, { status: 401 });
@@ -119,8 +129,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const body = await req.json();
     const { title, variables, customContent, folderId, signerIds, sendAfterCreate, demandId, prefectureId, companyId, companyItems } = body;
 
-    const template = await prisma.template.findUnique({ where: { id: params.id } });
-    if (!template) return NextResponse.json({ error: "Template não encontrado" }, { status: 404 });
+    const template = await prisma.template.findUnique({ where: { id: templateId } });
+    if (!template) return NextResponse.json({ error: "Modelo não encontrado" }, { status: 404 });
 
     // Se tiver customContent (editado inline), usar diretamente; senão substituir variáveis
     let content = template.content;
@@ -148,7 +158,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         status: "RASCUNHO",
         createdBy: userId,
         folderId: resolvedFolderId,
-        templateId: params.id,
+        templateId,
         demandId: demandId || null,
         companyId: companyId || null,
         signers: signerIds?.length ? {

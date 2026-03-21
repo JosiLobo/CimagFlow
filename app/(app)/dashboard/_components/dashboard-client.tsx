@@ -547,7 +547,7 @@ export default function DashboardClient({ userName, userRole }: { userName: stri
             { label: "Atas", value: o.minutes, icon: BookOpen, color: "text-purple-600", bg: "bg-purple-50", link: "/atas" },
             { label: "Credenciamentos", value: o.credenciamentos, icon: CheckCircle2, color: "text-emerald-700", bg: "bg-emerald-50", link: "/credenciamentos" },
             { label: "Pedidos", value: o.pedidos, icon: ClipboardList, color: "text-cyan-700", bg: "bg-cyan-50", link: "/demandas" },
-            { label: "Modelos", value: o.templates, icon: FileText, color: "text-indigo-600", bg: "bg-indigo-50", link: "/templates" },
+            { label: "Modelos", value: o.templates, icon: FileText, color: "text-indigo-600", bg: "bg-indigo-50", link: "/modelos" },
             { label: "Pastas", value: o.folders, icon: FolderOpen, color: "text-orange-600", bg: "bg-orange-50", link: "/pastas" },
             { label: "Usuários", value: o.users.total, icon: Users, color: "text-teal-600", bg: "bg-teal-50", link: "/colaboradores" },
             { label: "Ativos", value: o.users.active, icon: Activity, color: "text-green-600", bg: "bg-green-50", link: "/colaboradores" },

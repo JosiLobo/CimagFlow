@@ -22,6 +22,7 @@ export async function GET(
       include: {
         signers: true,
         bid: { select: { id: true, title: true, number: true } },
+        items: { orderBy: { name: "asc" } },
       },
     });
 
@@ -48,10 +49,30 @@ export async function PATCH(
     }
 
     const body = await request.json();
+    const { items, ...data } = body;
+
+    // Se items foi enviado, atualizar itens
+    if (items !== undefined) {
+      // Deletar itens existentes e recriar
+      await prisma.companyItem.deleteMany({ where: { companyId: params.id } });
+      if (items?.length) {
+        await prisma.companyItem.createMany({
+          data: items.map((item: { name: string; description?: string; unit?: string; quantity?: number; unitPrice?: number }) => ({
+            companyId: params.id,
+            name: item.name,
+            description: item.description || null,
+            unit: item.unit || "UN",
+            quantity: item.quantity ?? 1,
+            unitPrice: item.unitPrice ?? 0,
+          })),
+        });
+      }
+    }
 
     const company = await prisma.company.update({
       where: { id: params.id },
-      data: body,
+      data,
+      include: { items: { orderBy: { name: "asc" } } },
     });
 
     await auditLog(request, {

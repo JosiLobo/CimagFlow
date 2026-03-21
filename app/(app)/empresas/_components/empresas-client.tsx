@@ -18,6 +18,7 @@ import {
   UserMinus,
   Loader2,
   ChevronRight,
+  Package,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -39,8 +40,18 @@ interface Company {
   bidId: string | null;
   isActive: boolean;
   createdAt: string;
-  _count: { signers: number };
+  _count: { signers: number; items: number };
   bid?: { id: string; title: string; number: string } | null;
+  items?: CompanyItem[];
+}
+
+interface CompanyItem {
+  id?: string;
+  name: string;
+  description: string;
+  unit: string;
+  quantity: number;
+  unitPrice: number;
 }
 
 interface Signer {
@@ -95,6 +106,7 @@ export default function EmpresasClient() {
     isCredenciada: false,
     bidId: "",
   });
+  const [formItems, setFormItems] = useState<CompanyItem[]>([]);
 
   // Signers panel state
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
@@ -206,18 +218,19 @@ export default function EmpresasClient() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const payload = { ...formData, items: formItems.filter(i => i.name.trim()) };
       if (editingCompany) {
         await fetch(`/api/companies/${editingCompany.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(payload),
         });
         toast.success("Empresa atualizada!");
       } else {
         await fetch("/api/companies", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(payload),
         });
         toast.success("Empresa cadastrada!");
       }
@@ -259,11 +272,19 @@ export default function EmpresasClient() {
       isCredenciada: company.isCredenciada || false,
       bidId: company.bidId || "",
     });
+    setFormItems((company.items || []).map(i => ({
+      name: i.name,
+      description: i.description || "",
+      unit: i.unit || "UN",
+      quantity: i.quantity ?? 1,
+      unitPrice: i.unitPrice ?? 0,
+    })));
     setShowModal(true);
   };
 
   const resetForm = () => {
     setFormData({ name: "", tradeName: "", cnpj: "", address: "", city: "", state: "", phone: "", email: "", contactName: "", cep: "", number: "", complement: "", isCredenciada: false, bidId: "" });
+    setFormItems([]);
   };
 
   return (
@@ -366,6 +387,10 @@ export default function EmpresasClient() {
                   <span>{company._count.signers} assinantes</span>
                   <ChevronRight className="w-3 h-3" />
                 </button>
+                <span className="flex items-center gap-1 text-emerald-600">
+                  <Package className="w-4 h-4" />
+                  <span>{company._count.items} itens</span>
+                </span>
               </div>
             </motion.div>
           ))}
@@ -475,6 +500,138 @@ export default function EmpresasClient() {
                     Empresa Credenciada
                   </label>
                 </div>
+
+                {/* Itens Fornecidos */}
+                <div className="border-t border-gray-200 pt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <Package className="w-4 h-4 text-emerald-500" />
+                      Itens Fornecidos
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setFormItems([...formItems, { name: "", description: "", unit: "UN", quantity: 1, unitPrice: 0 }])}
+                      className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-800 font-medium"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Adicionar Item
+                    </button>
+                  </div>
+                  {formItems.length === 0 ? (
+                    <p className="text-sm text-gray-400 text-center py-3 bg-gray-50 rounded-xl">
+                      Nenhum item cadastrado. Clique em &quot;Adicionar Item&quot; para começar.
+                    </p>
+                  ) : (
+                    <div className="space-y-3 max-h-[250px] overflow-y-auto pr-1">
+                      {formItems.map((item, idx) => (
+                        <div key={idx} className="bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-2 relative">
+                          <button
+                            type="button"
+                            onClick={() => setFormItems(formItems.filter((_, i) => i !== idx))}
+                            className="absolute top-2 right-2 p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                          <div>
+                            <input
+                              type="text"
+                              placeholder="Nome do item *"
+                              value={item.name}
+                              onChange={(e) => {
+                                const updated = [...formItems];
+                                updated[idx] = { ...updated[idx], name: e.target.value };
+                                setFormItems(updated);
+                              }}
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            />
+                          </div>
+                          <div>
+                            <input
+                              type="text"
+                              placeholder="Descrição (opcional)"
+                              value={item.description}
+                              onChange={(e) => {
+                                const updated = [...formItems];
+                                updated[idx] = { ...updated[idx], description: e.target.value };
+                                setFormItems(updated);
+                              }}
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            />
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div>
+                              <label className="block text-[10px] text-gray-500 mb-0.5">Unidade</label>
+                              <select
+                                value={item.unit}
+                                onChange={(e) => {
+                                  const updated = [...formItems];
+                                  updated[idx] = { ...updated[idx], unit: e.target.value };
+                                  setFormItems(updated);
+                                }}
+                                className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                              >
+                                <option value="UN">UN</option>
+                                <option value="KG">KG</option>
+                                <option value="L">L</option>
+                                <option value="M">M</option>
+                                <option value="M²">M²</option>
+                                <option value="M³">M³</option>
+                                <option value="CX">CX</option>
+                                <option value="PCT">PCT</option>
+                                <option value="HR">HR</option>
+                                <option value="DIA">DIA</option>
+                                <option value="MÊS">MÊS</option>
+                                <option value="SV">SV</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-[10px] text-gray-500 mb-0.5">Quantidade</label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={item.quantity}
+                                onChange={(e) => {
+                                  const updated = [...formItems];
+                                  updated[idx] = { ...updated[idx], quantity: parseFloat(e.target.value) || 0 };
+                                  setFormItems(updated);
+                                }}
+                                className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] text-gray-500 mb-0.5">Preço Unit. (R$)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={item.unitPrice}
+                                onChange={(e) => {
+                                  const updated = [...formItems];
+                                  updated[idx] = { ...updated[idx], unitPrice: parseFloat(e.target.value) || 0 };
+                                  setFormItems(updated);
+                                }}
+                                className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                              />
+                            </div>
+                          </div>
+                          <div className="text-right text-xs text-gray-500">
+                            Total: <span className="font-semibold text-gray-700">
+                              {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(item.quantity * item.unitPrice)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                      {formItems.length > 0 && (
+                        <div className="text-right text-sm font-semibold text-emerald-700 pt-1">
+                          Total Geral: {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+                            formItems.reduce((sum, i) => sum + (i.quantity * i.unitPrice), 0)
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex gap-3 pt-2">
                   <button type="button" onClick={() => setShowModal(false)} className="flex-1 px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50">Cancelar</button>
                   <button type="submit" className="flex-1 px-4 py-2 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600">Salvar</button>

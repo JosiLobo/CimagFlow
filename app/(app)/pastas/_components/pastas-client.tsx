@@ -456,7 +456,7 @@ export default function PastasClient() {
                         ))}
                       </select>
                       <p className="text-xs text-gray-500 mt-1">
-                        Ao usar templates, apenas pastas desta prefeitura aparecerão
+                        Ao usar modelos, apenas pastas desta prefeitura aparecerão
                       </p>
                     </div>
                   </>

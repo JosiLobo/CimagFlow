@@ -124,7 +124,7 @@ export default function NovoDocumentoClient() {
   const loadTemplates = async () => {
     setLoadingTemplates(true);
     try {
-      const res = await fetch("/api/templates");
+      const res = await fetch("/api/modelos");
       const data = await res.json();
       setTemplates(data.templates ?? []);
     } finally {
@@ -279,7 +279,7 @@ export default function NovoDocumentoClient() {
               </button>
               <button onClick={async () => { setUseTemplate(true); await loadTemplates(); }}
                 className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-all ${useTemplate ? "bg-[#1E3A5F] text-white border-[#1E3A5F]" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
-                <Wand2 className="w-4 h-4 inline mr-1" /> Usar Template
+                <Wand2 className="w-4 h-4 inline mr-1" /> Usar Modelo
               </button>
             </div>
             <input
@@ -341,7 +341,7 @@ export default function NovoDocumentoClient() {
                     <Wand2 className="w-10 h-10 mx-auto mb-2 opacity-30" />
                     <p className="text-sm">Nenhum modelo encontrado</p>
                     <button
-                      onClick={() => router.push("/templates")}
+                      onClick={() => router.push("/modelos")}
                       className="mt-2 text-xs text-[#1E3A5F] hover:underline font-medium"
                     >
                       Criar um modelo
@@ -354,7 +354,7 @@ export default function NovoDocumentoClient() {
                       .map((t) => (
                         <button
                           key={t.id}
-                          onClick={() => router.push(`/templates/${t.id}/usar`)}
+                          onClick={() => router.push(`/modelos/${t.id}/usar`)}
                           className="group flex items-center gap-3 p-3 border border-gray-200 rounded-xl hover:border-[#1E3A5F]/40 hover:bg-blue-50/50 transition-all text-left w-full"
                         >
                           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#1E3A5F]/10 to-emerald-500/10 flex items-center justify-center shrink-0 group-hover:from-[#1E3A5F]/20 group-hover:to-emerald-500/20 transition-colors">

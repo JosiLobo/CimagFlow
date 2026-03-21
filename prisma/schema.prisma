@@ -124,6 +124,7 @@ model Document {
   bidId       String?
   templateId  String?
   demandId    String?
+  companyId   String?
   createdBy   String
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
@@ -133,11 +134,14 @@ model Document {
   bid         Bid?           @relation(fields: [bidId], references: [id])
   template    Template?      @relation(fields: [templateId], references: [id])
   demand      Demand?        @relation(fields: [demandId], references: [id])
+  company     Company?       @relation(fields: [companyId], references: [id])
   signers     DocumentSigner[]
+  items       DocumentItem[]
 
   @@index([createdBy])
   @@index([status])
   @@index([folderId])
+  @@index([companyId])
   @@index([createdAt])
   @@map("documents")
 }
@@ -292,9 +296,44 @@ model Company {
 
   bid           Bid?     @relation(fields: [bidId], references: [id])
   signers       Signer[]
+  items         CompanyItem[]
+  documents     Document[]
 
   @@index([bidId])
   @@map("companies")
+}
+
+model CompanyItem {
+  id          String   @id @default(cuid())
+  companyId   String
+  name        String
+  description String?
+  unit        String   @default("UN")
+  quantity    Float    @default(1)
+  unitPrice   Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@map("company_items")
+}
+
+model DocumentItem {
+  id          String   @id @default(cuid())
+  documentId  String
+  name        String
+  description String?
+  unit        String   @default("UN")
+  quantity    Float    @default(1)
+  unitPrice   Float    @default(0)
+  createdAt   DateTime @default(now())
+
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@map("document_items")
 }
 
 model Bid {

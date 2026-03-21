@@ -57,7 +57,7 @@ export async function createAuditLog(params: AuditLogParams) {
       },
     });
   } catch (error) {
-    console.error("Erro ao criar log de auditoria:", error);
+    console.error("Erro ao criar log de auditoria: - audit.ts:60", error);
   }
 }
 
@@ -105,7 +105,7 @@ export function getEntityLabel(entity: string): string {
   const labels: Record<string, string> = {
     document: "Documento",
     signer: "Assinante",
-    template: "Template",
+    template: "Modelo",
     folder: "Pasta",
     prefecture: "Prefeitura",
     company: "Empresa",

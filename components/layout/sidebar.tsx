@@ -36,7 +36,7 @@ const navItems = [
   { href: "/credenciamentos", icon: BadgeCheck, label: "Credenciamentos" },
   { href: "/pastas", icon: FolderOpen, label: "Pastas" },
   { href: "/para-assinar", icon: PenLine, label: "Para Assinar" },
-  { href: "/templates", icon: FileCode2, label: "Modelos" },
+  { href: "/modelos", icon: FileCode2, label: "Modelos" },
   { href: "/assinantes", icon: Users, label: "Assinantes" },
   { href: "/prefeituras", icon: Building2, label: "Prefeituras" },
   { href: "/empresas", icon: Briefcase, label: "Empresas" },
