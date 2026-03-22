@@ -429,7 +429,7 @@ export default function EmpresasClient() {
                   <input type="text" value={formData.tradeName} onChange={(e) => setFormData({ ...formData, tradeName: e.target.value })} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">CNPJ</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">CNPJ *</label>
                   <input type="text" value={formData.cnpj} onChange={(e) => {
                     const digits = e.target.value.replace(/\D/g, "").slice(0, 14);
                     let masked = digits;
@@ -438,7 +438,7 @@ export default function EmpresasClient() {
                     if (digits.length > 8) masked = masked.slice(0, 10) + "/" + digits.slice(8);
                     if (digits.length > 12) masked = masked.slice(0, 15) + "-" + digits.slice(12);
                     setFormData({ ...formData, cnpj: masked });
-                  }} maxLength={18} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono tracking-wider" placeholder="00.000.000/0000-00" />
+                  }} maxLength={18} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono tracking-wider" placeholder="00.000.000/0000-00" required />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Endereço</label>

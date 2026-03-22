@@ -65,6 +65,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Nome é obrigatório" }, { status: 400 });
     }
 
+    if (!cnpj || cnpj.replace(/\D/g, "").length !== 14) {
+      return NextResponse.json({ error: "CNPJ é obrigatório (14 dígitos)" }, { status: 400 });
+    }
+
     const company = await prisma.company.create({
       data: {
         name,
