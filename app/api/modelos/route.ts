@@ -48,7 +48,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const search = searchParams.get("search");
 
-    const where: any = { createdBy: userId };
+    const where: any = {};
     if (search) where.name = { contains: search, mode: "insensitive" };
 
     const templates = await prisma.template.findMany({
