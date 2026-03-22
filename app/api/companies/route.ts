@@ -69,6 +69,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "CNPJ é obrigatório (14 dígitos)" }, { status: 400 });
     }
 
+    if (!cep) return NextResponse.json({ error: "CEP é obrigatório" }, { status: 400 });
+    if (!address) return NextResponse.json({ error: "Endereço é obrigatório" }, { status: 400 });
+    if (!phone) return NextResponse.json({ error: "Telefone é obrigatório" }, { status: 400 });
+    if (!email) return NextResponse.json({ error: "Email é obrigatório" }, { status: 400 });
+
     const company = await prisma.company.create({
       data: {
         name,
