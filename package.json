@@ -91,6 +91,7 @@
     "react-resizable-panels": "2.1.3",
     "react-signature-canvas": "^1.1.0-alpha.2",
     "recharts": "2.15.3",
+    "resend": "^6.9.4",
     "sonner": "1.5.0",
     "swr": "2.2.4",
     "vaul": "0.9.9",
