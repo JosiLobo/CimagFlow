@@ -288,6 +288,8 @@ model Company {
   phone         String?
   email         String?
   contactName   String?
+  itemsFileUrl  String?
+  itemsFileName String?
   isCredenciada Boolean  @default(false)
   bidId         String?
   isActive      Boolean  @default(true)
@@ -311,6 +313,7 @@ model CompanyItem {
   unit        String   @default("UN")
   quantity    Float    @default(1)
   unitPrice   Float    @default(0)
+  totalPrice  Float    @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

@@ -23,12 +23,10 @@ export async function POST(request: NextRequest) {
     // Try to extract text from the PDF content
     let pdfText = "";
     try {
-      const { PDFParse } = await import("pdf-parse");
-      const buffer = Buffer.from(await file.arrayBuffer()) as unknown as Uint8Array;
-      const parser = new PDFParse({ data: buffer });
-      const result = await parser.getText();
+      const pdfParse = require("pdf-parse");
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const result = await pdfParse(buffer);
       pdfText = result.text?.substring(0, 5000) || "";
-      await parser.destroy();
     } catch {
       // Fallback to filename analysis if PDF parsing fails
     }

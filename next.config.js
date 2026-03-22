@@ -16,7 +16,7 @@ const nextConfig = {
     ],
   },
   experimental: {
-    serverComponentsExternalPackages: ['pdf-parse'],
+    serverComponentsExternalPackages: ['pdf-parse', 'xlsx', 'mammoth'],
     serverActions: {
       bodySizeLimit: '10mb',
     },

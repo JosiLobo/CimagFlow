@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { FileText, Download, Send, XCircle, CheckCircle2, Clock, User, Calendar, ArrowLeft, Loader2, Eye, Copy, Printer } from "lucide-react";
+import { FileText, Download, Send, XCircle, CheckCircle2, Clock, User, Calendar, ArrowLeft, Loader2, Eye, Copy, Printer, Paperclip } from "lucide-react";
 import Link from "next/link";
 
 const statusConfig: Record<string, { label: string; bg: string; color: string }> = {
@@ -108,8 +108,11 @@ export default function DocumentoDetalheClient({ id }: { id: string }) {
               </div>
             `).join("")}
           </div>
-        ` : ""}
-        ${footerImg ? `<div class="footer-img"><img src="${footerImg}" alt="Rodapé" /></div>` : ""}
+        ` : ""}        ${doc.company?.itemsFileName ? `
+          <div class="content" style="margin-top:16px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:13px;color:#374151;">
+            <strong>Anexo de Itens:</strong> ${doc.company.itemsFileName}
+          </div>
+        ` : ""}        ${footerImg ? `<div class="footer-img"><img src="${footerImg}" alt="Rodapé" /></div>` : ""}
       </div>
       <script>window.onload=function(){window.print();}</script>
       </body></html>
@@ -204,6 +207,25 @@ export default function DocumentoDetalheClient({ id }: { id: string }) {
                   </a>
                 </div>
                 {showPdf && <iframe src={fileUrl} className="w-full h-96 rounded-xl border border-gray-200" title="Documento PDF" />}
+              </div>
+            )}
+            {doc.company?.itemsFileUrl && (
+              <div className="mt-4 bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                <div className="flex items-center gap-3">
+                  <Paperclip className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-emerald-800">Anexo de Itens — {doc.company.name}</p>
+                    <p className="text-xs text-emerald-600 truncate">{doc.company.itemsFileName || "Arquivo anexado"}</p>
+                  </div>
+                  <a
+                    href={doc.company.itemsFileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:text-emerald-900 whitespace-nowrap"
+                  >
+                    <Download className="w-4 h-4" /> Baixar
+                  </a>
+                </div>
               </div>
             )}
           </motion.div>

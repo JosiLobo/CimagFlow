@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, tradeName, cnpj, address, city, state, phone, email, contactName, cep, number, complement, isCredenciada, bidId, items } = body;
+    const { name, tradeName, cnpj, address, city, state, phone, email, contactName, cep, number, complement, isCredenciada, bidId, items, itemsFileUrl, itemsFileName } = body;
 
     if (!name) {
       return NextResponse.json({ error: "Nome é obrigatório" }, { status: 400 });
@@ -73,6 +73,7 @@ export async function POST(request: NextRequest) {
     if (!address) return NextResponse.json({ error: "Endereço é obrigatório" }, { status: 400 });
     if (!phone) return NextResponse.json({ error: "Telefone é obrigatório" }, { status: 400 });
     if (!email) return NextResponse.json({ error: "Email é obrigatório" }, { status: 400 });
+    if (!number) return NextResponse.json({ error: "Número é obrigatório" }, { status: 400 });
 
     const company = await prisma.company.create({
       data: {
@@ -90,13 +91,16 @@ export async function POST(request: NextRequest) {
         complement,
         isCredenciada: isCredenciada || false,
         bidId: bidId || null,
+        itemsFileUrl: itemsFileUrl || null,
+        itemsFileName: itemsFileName || null,
         items: items?.length ? {
-          create: items.map((item: { name: string; description?: string; unit?: string; quantity?: number; unitPrice?: number }) => ({
+          create: items.map((item: { name: string; description?: string; unit?: string; quantity?: number; unitPrice?: number; totalPrice?: number }) => ({
             name: item.name,
             description: item.description || null,
             unit: item.unit || "UN",
             quantity: item.quantity ?? 1,
             unitPrice: item.unitPrice ?? 0,
+            totalPrice: item.totalPrice ?? 0,
           })),
         } : undefined,
       },

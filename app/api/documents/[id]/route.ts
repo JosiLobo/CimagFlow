@@ -16,6 +16,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       include: {
         creator: { select: { name: true, email: true } },
         template: { select: { headerImage: true, footerImage: true } },
+        company: { select: { id: true, name: true, itemsFileUrl: true, itemsFileName: true } },
         signers: {
           include: { signer: true },
           orderBy: { order: "asc" },

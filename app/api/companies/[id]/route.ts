@@ -49,7 +49,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { items, ...data } = body;
+    const { items, ...raw } = body;
 
     // Se items foi enviado, atualizar itens
     if (items !== undefined) {
@@ -57,21 +57,33 @@ export async function PATCH(
       await prisma.companyItem.deleteMany({ where: { companyId: params.id } });
       if (items?.length) {
         await prisma.companyItem.createMany({
-          data: items.map((item: { name: string; description?: string; unit?: string; quantity?: number; unitPrice?: number }) => ({
+          data: items.map((item: { name: string; description?: string; unit?: string; quantity?: number; unitPrice?: number; totalPrice?: number }) => ({
             companyId: params.id,
             name: item.name,
             description: item.description || null,
             unit: item.unit || "UN",
             quantity: item.quantity ?? 1,
             unitPrice: item.unitPrice ?? 0,
+            totalPrice: item.totalPrice ?? 0,
           })),
         });
       }
     }
 
+    // Sanitize: empty strings to null for optional/FK fields
+    if (raw.bidId === "") raw.bidId = null;
+    if (raw.itemsFileUrl === "") raw.itemsFileUrl = null;
+    if (raw.itemsFileName === "") raw.itemsFileName = null;
+    if (raw.tradeName === "") raw.tradeName = null;
+    if (raw.complement === "") raw.complement = null;
+    if (raw.contactName === "") raw.contactName = null;
+    if (raw.city === "") raw.city = null;
+    if (raw.state === "") raw.state = null;
+    if (raw.number === "") raw.number = null;
+
     const company = await prisma.company.update({
       where: { id: params.id },
-      data,
+      data: raw,
       include: { items: { orderBy: { name: "asc" } } },
     });
 
