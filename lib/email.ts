@@ -1,7 +1,12 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const DEFAULT_FROM = "CimagFlow <onboarding@resend.dev>";
+
+function getResend() {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) throw new Error("RESEND_API_KEY não configurada");
+  return new Resend(key);
+}
 
 interface SendEmailParams {
   to: string;
@@ -12,7 +17,8 @@ interface SendEmailParams {
 
 export async function sendEmail({ to, subject, html, notificationId }: SendEmailParams) {
   try {
-    const { data, error } = await resend.emails.send({
+    console.log(`[Email] Enviando para: ${to}, assunto: ${subject}`);
+    const { data, error } = await getResend().emails.send({
       from: DEFAULT_FROM,
       to,
       subject,
@@ -20,13 +26,14 @@ export async function sendEmail({ to, subject, html, notificationId }: SendEmail
     });
 
     if (error) {
-      console.error("Erro Resend:", error);
+      console.error(`[Email] Erro Resend ao enviar para ${to}:`, error);
       return { success: false, error: error.message };
     }
 
+    console.log(`[Email] Enviado com sucesso para ${to}, id: ${data?.id}`);
     return { success: true, id: data?.id };
   } catch (error) {
-    console.error("Erro ao enviar e-mail:", error);
+    console.error(`[Email] Exceção ao enviar para ${to}:`, error);
     return { success: false, error: String(error) };
   }
 }

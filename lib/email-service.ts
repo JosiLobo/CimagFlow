@@ -1,8 +1,12 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 const DEFAULT_FROM = "CimagFlow <onboarding@resend.dev>";
+
+function getResend() {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) throw new Error("RESEND_API_KEY não configurada");
+  return new Resend(key);
+}
 
 // ─────────────────────────────────────────────
 // 1. EMAIL TRANSACIONAL — confirmação / senha
@@ -16,7 +20,7 @@ export async function sendTransactional({
   subject: string;
   html: string;
 }) {
-  return resend.emails.send({
+  return getResend().emails.send({
     from: DEFAULT_FROM,
     to,
     subject,
@@ -72,8 +76,8 @@ export async function sendActionNotification({
     </html>
   `;
 
-  return resend.emails.send({
-    from: "onboarding@resend.dev",
+  return getResend().emails.send({
+    from: DEFAULT_FROM,
     to,
     subject: `[CimagFlow] ${action}`,
     html,
@@ -129,7 +133,7 @@ export async function sendReport({
     </html>
   `;
 
-  return resend.emails.send({
+  return getResend().emails.send({
     from: DEFAULT_FROM,
     to,
     subject: `📊 ${reportTitle} — ${periodLabel}`,
