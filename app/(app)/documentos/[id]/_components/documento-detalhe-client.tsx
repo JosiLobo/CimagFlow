@@ -77,32 +77,39 @@ export default function DocumentoDetalheClient({ id }: { id: string }) {
     printWindow.document.write(`
       <html><head><title>${doc?.title ?? "Contrato"}</title>
       <style>
-        @page { margin: 0; }
-        body { margin: 0; font-family: 'Times New Roman', Georgia, serif; }
+        @page { margin: 10mm 0; size: A4; }
+        body { margin: 0; font-family: 'Times New Roman', Georgia, serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         .page { max-width: 210mm; margin: 0 auto; }
-        .content { padding: 40px; font-size: 14px; line-height: 1.6; color: #1f2937; }
-        img { width: 100%; height: auto; }
-        .signers { margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb; }
-        .signer { margin-bottom: 16px; }
-        .signer-name { font-weight: bold; }
+        .content { padding: 30px 40px; font-size: 14px; line-height: 1.6; color: #1f2937; }
+        .content p, .content div, .content li, .content h1, .content h2, .content h3, .content h4, .content table {
+          page-break-inside: avoid; break-inside: avoid;
+        }
+        .content table { width: 100%; border-collapse: collapse; }
+        .content table td, .content table th { page-break-inside: avoid; break-inside: avoid; }
+        img { width: 100%; height: auto; display: block; }
+        .header-img, .footer-img { page-break-inside: avoid; break-inside: avoid; }
+        .signers { margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb; page-break-inside: avoid; break-inside: avoid; }
+        .signer { margin-bottom: 16px; page-break-inside: avoid; break-inside: avoid; display: inline-block; width: 45%; vertical-align: top; margin-right: 4%; text-align: center; }
+        .signer-name { font-weight: bold; border-top: 1px solid #ccc; padding-top: 4px; margin-top: 4px; }
         .signer-info { font-size: 12px; color: #6b7280; }
+        .signer img { width: 180px; height: auto; margin: 0 auto; }
       </style></head><body>
       <div class="page">
-        ${headerImg ? `<img src="${headerImg}" alt="Cabeçalho" />` : ""}
+        ${headerImg ? `<div class="header-img"><img src="${headerImg}" alt="Cabeçalho" /></div>` : ""}
         <div class="content">${doc?.content ?? ""}</div>
         ${doc?.status === "CONCLUIDO" && doc?.signers?.length ? `
           <div class="content signers">
-            <h3>Assinaturas</h3>
+            <h3 style="text-align:center;width:100%;margin-bottom:20px;">Assinaturas</h3>
             ${doc.signers.map((s: any) => `
               <div class="signer">
+                ${s.signatureImage ? `<img src="${s.signatureImage}" />` : ""}
                 <div class="signer-name">${s.signer?.name}</div>
                 <div class="signer-info">${s.status === "ASSINADO" ? `Assinado em ${new Date(s.signedAt).toLocaleDateString("pt-BR")}` : s.status}</div>
-                ${s.signatureImage ? `<img src="${s.signatureImage}" style="width:200px;height:auto;margin-top:4px;" />` : ""}
               </div>
             `).join("")}
           </div>
         ` : ""}
-        ${footerImg ? `<img src="${footerImg}" alt="Rodapé" />` : ""}
+        ${footerImg ? `<div class="footer-img"><img src="${footerImg}" alt="Rodapé" /></div>` : ""}
       </div>
       <script>window.onload=function(){window.print();}</script>
       </body></html>

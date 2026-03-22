@@ -13,9 +13,10 @@ interface SendEmailParams {
   subject: string;
   html: string;
   notificationId: string;
+  attachments?: { filename: string; content: Buffer | string }[];
 }
 
-export async function sendEmail({ to, subject, html, notificationId }: SendEmailParams) {
+export async function sendEmail({ to, subject, html, notificationId, attachments }: SendEmailParams) {
   try {
     console.log(`[Email] Enviando para: ${to}, assunto: ${subject}`);
     const { data, error } = await getResend().emails.send({
@@ -23,6 +24,7 @@ export async function sendEmail({ to, subject, html, notificationId }: SendEmail
       to,
       subject,
       html,
+      ...(attachments?.length ? { attachments } : {}),
     });
 
     if (error) {

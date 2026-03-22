@@ -118,6 +118,7 @@ export async function POST(req: Request, { params }: { params: RouteParams }) {
         document: {
           include: {
             creator: { select: { name: true, email: true } },
+            template: { select: { headerImage: true, footerImage: true } },
             signers: {
               include: { signer: true },
               orderBy: { order: "asc" },
@@ -232,12 +233,77 @@ export async function POST(req: Request, { params }: { params: RouteParams }) {
           documentLink: `${baseUrl}/documentos/${ds.documentId}`,
         });
 
+        // Buscar assinantes atualizados com imagens de assinatura
+        const signersWithSignatures = await prisma.documentSigner.findMany({
+          where: { documentId: ds.documentId },
+          include: { signer: true },
+          orderBy: { order: "asc" },
+        });
+
+        // Gerar HTML do contrato com assinaturas para anexo
+        const attachments: { filename: string; content: string }[] = [];
+        if (ds.document.content) {
+          const headerImg = ds.document.template?.headerImage;
+          const footerImg = ds.document.template?.footerImage;
+          const contractHtml = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>${ds.document.title}</title>
+<style>
+  @page { margin: 0; }
+  body { margin: 0; font-family: 'Times New Roman', Georgia, serif; color: #1f2937; }
+  .page { max-width: 210mm; margin: 0 auto; }
+  .content { padding: 40px; font-size: 14px; line-height: 1.6; }
+  img.header, img.footer { width: 100%; height: auto; }
+  .signatures { margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb; }
+  .sig-grid { display: flex; flex-wrap: wrap; gap: 24px; }
+  .sig-item { text-align: center; flex: 1; min-width: 200px; }
+  .sig-item img { height: 60px; margin: 0 auto 4px; }
+  .sig-name { font-weight: bold; font-size: 13px; border-top: 1px solid #9ca3af; padding-top: 4px; }
+  .sig-date { font-size: 11px; color: #6b7280; }
+</style></head><body>
+<div class="page">
+  ${headerImg ? `<img class="header" src="${headerImg}" />` : ""}
+  <div class="content">${ds.document.content}</div>
+  <div class="content signatures">
+    <h3>Assinaturas</h3>
+    <div class="sig-grid">
+      ${signersWithSignatures.map(s => `
+        <div class="sig-item">
+          ${s.signatureImage ? `<img src="${s.signatureImage}" />` : ""}
+          <div class="sig-name">${s.signer.name}</div>
+          <div class="sig-date">${s.signedAt ? new Date(s.signedAt).toLocaleDateString("pt-BR") : ""}</div>
+        </div>
+      `).join("")}
+    </div>
+  </div>
+  ${footerImg ? `<img class="footer" src="${footerImg}" />` : ""}
+</div></body></html>`;
+          attachments.push({ filename: `${ds.document.title.replace(/[^a-zA-Z0-9À-ú ]/g, "")}.html`, content: contractHtml });
+        }
+
+        // Se tem PDF anexo, buscar do S3
+        if (ds.document.fileUrl) {
+          try {
+            const { getFileUrl } = await import("@/lib/s3");
+            const pdfUrl = await getFileUrl(ds.document.fileUrl, true);
+            const pdfRes = await fetch(pdfUrl);
+            if (pdfRes.ok) {
+              const pdfBuffer = Buffer.from(await pdfRes.arrayBuffer());
+              const ext = ds.document.fileName?.split(".").pop() || "pdf";
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              attachments.push({ filename: `${ds.document.title.replace(/[^a-zA-Z0-9À-ú ]/g, "")}.${ext}`, content: pdfBuffer as any });
+            }
+          } catch (err) {
+            console.error("Erro ao buscar PDF para anexo:", err);
+          }
+        }
+
         try {
           await sendEmail({
             to: ds.document.creator.email,
             subject: `✅ Documento assinado: ${ds.document.title}`,
             html: creatorHtml,
             notificationId: process.env.NOTIF_ID_DOCUMENTO_COMPLETAMENTE_ASSINADO ?? "",
+            attachments: attachments.length ? attachments : undefined,
           });
         } catch (emailError) {
           console.error("Erro ao enviar email de conclusão ao criador:", emailError);
@@ -258,6 +324,7 @@ export async function POST(req: Request, { params }: { params: RouteParams }) {
               subject: `✅ Contrato concluído: ${ds.document.title}`,
               html: signerHtml,
               notificationId: process.env.NOTIF_ID_DOCUMENTO_COMPLETAMENTE_ASSINADO ?? "",
+              attachments: attachments.length ? attachments : undefined,
             });
           } catch (emailError) {
             console.error(`Erro ao enviar email de conclusão para ${signerDs.signer.email}:`, emailError);
