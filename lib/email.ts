@@ -1,3 +1,8 @@
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+const DEFAULT_FROM = "CimagFlow <onboarding@resend.dev>";
+
 interface SendEmailParams {
   to: string;
   subject: string;
@@ -7,38 +12,19 @@ interface SendEmailParams {
 
 export async function sendEmail({ to, subject, html, notificationId }: SendEmailParams) {
   try {
-    const appUrl = process.env.NEXTAUTH_URL ?? "";
-    let hostname = "cimagflow.app";
-    try {
-      if (appUrl) hostname = new URL(appUrl).hostname;
-    } catch {}
-
-    const response = await fetch("https://apps.abacus.ai/api/sendNotificationEmail", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        deployment_token: process.env.ABACUSAI_API_KEY,
-        app_id: process.env.WEB_APP_ID,
-        notification_id: notificationId,
-        subject,
-        body: html,
-        is_html: true,
-        recipient_email: to,
-        sender_email: `noreply@${hostname}`,
-        sender_alias: "CimagFlow",
-      }),
+    const { data, error } = await resend.emails.send({
+      from: DEFAULT_FROM,
+      to,
+      subject,
+      html,
     });
 
-    const result = await response.json();
-    if (!result.success) {
-      if (result.notification_disabled) {
-        console.log("Notificação desabilitada, e-mail não enviado");
-        return { success: true, disabled: true };
-      }
-      throw new Error(result.message ?? "Falha ao enviar e-mail");
+    if (error) {
+      console.error("Erro Resend:", error);
+      return { success: false, error: error.message };
     }
 
-    return { success: true };
+    return { success: true, id: data?.id };
   } catch (error) {
     console.error("Erro ao enviar e-mail:", error);
     return { success: false, error: String(error) };
