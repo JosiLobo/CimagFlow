@@ -214,6 +214,14 @@ export default function DocumentosClient() {
                               <Send className="w-4 h-4" />
                             </button>
                           )}
+                          {doc.status === "CONCLUIDO" && (
+                            <Link href={`/documentos/${doc.id}`}
+                              className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                              title="Ver contrato assinado"
+                            >
+                              <Download className="w-4 h-4" />
+                            </Link>
+                          )}
                           {doc.status === "EM_ANDAMENTO" && (
                             <button
                               onClick={() => handleCancel(doc.id)}

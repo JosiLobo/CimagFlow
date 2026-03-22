@@ -101,6 +101,40 @@ export function buildCompletedEmail(params: {
   `;
 }
 
+export function buildSignerCompletedEmail(params: {
+  signerName: string;
+  documentTitle: string;
+  creatorName: string;
+  viewLink: string;
+}) {
+  const { signerName, documentTitle, creatorName, viewLink } = params;
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc;">
+      <div style="background: linear-gradient(135deg, #1E3A5F 0%, #10B981 100%); padding: 32px; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 700;">✍️ CimagFlow</h1>
+        <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0;">Sistema de Assinatura Digital</p>
+      </div>
+      <div style="background: white; padding: 32px; border-radius: 0 0 8px 8px;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <div style="background: #F0FDF4; width: 64px; height: 64px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 32px;">✅</div>
+        </div>
+        <h2 style="color: #1E3A5F; text-align: center;">Documento Concluído!</h2>
+        <p style="color: #6B7280; text-align: center;">Olá, <strong>${signerName}</strong>! O documento abaixo foi assinado por todos os participantes.</p>
+        <div style="background: #F0FDF4; border: 1px solid #10B981; padding: 16px; border-radius: 8px; margin: 20px 0; text-align: center;">
+          <p style="margin: 0; font-size: 18px; font-weight: 600; color: #1E3A5F;">${documentTitle}</p>
+          <p style="margin: 8px 0 0; font-size: 13px; color: #6B7280;">Enviado por ${creatorName}</p>
+        </div>
+        <div style="text-align: center; margin: 24px 0;">
+          <a href="${viewLink}" style="background: #1E3A5F; color: white; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 15px; font-weight: 600; display: inline-block;">📄 Ver Contrato Assinado</a>
+        </div>
+        <p style="color: #9CA3AF; font-size: 12px; text-align: center;">Você pode acessar o contrato assinado a qualquer momento através do link acima.</p>
+        <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 24px 0;" />
+        <p style="color: #9CA3AF; font-size: 12px; text-align: center;">Este e-mail foi enviado pelo CimagFlow. Não responda a este e-mail.</p>
+      </div>
+    </div>
+  `;
+}
+
 export function buildReminderEmail(params: {
   signerName: string;
   documentTitle: string;

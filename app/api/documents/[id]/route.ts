@@ -15,6 +15,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       where: { id: params.id },
       include: {
         creator: { select: { name: true, email: true } },
+        template: { select: { headerImage: true, footerImage: true } },
         signers: {
           include: { signer: true },
           orderBy: { order: "asc" },

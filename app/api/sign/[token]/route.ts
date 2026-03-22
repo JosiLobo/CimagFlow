@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { sendEmail, buildCompletedEmail, buildSignatureEmail } from "@/lib/email";
+import { sendEmail, buildCompletedEmail, buildSignatureEmail, buildSignerCompletedEmail } from "@/lib/email";
 import { createAuditLog } from "@/lib/audit";
 import { getFileUrl } from "@/lib/s3";
 
@@ -225,7 +225,7 @@ export async function POST(req: Request, { params }: { params: RouteParams }) {
         });
 
         // Notificar criador
-        const html = buildCompletedEmail({
+        const creatorHtml = buildCompletedEmail({
           creatorName: ds.document.creator.name,
           documentTitle: ds.document.title,
           totalSigners: ds.document.signers.length,
@@ -236,11 +236,32 @@ export async function POST(req: Request, { params }: { params: RouteParams }) {
           await sendEmail({
             to: ds.document.creator.email,
             subject: `✅ Documento assinado: ${ds.document.title}`,
-            html,
+            html: creatorHtml,
             notificationId: process.env.NOTIF_ID_DOCUMENTO_COMPLETAMENTE_ASSINADO ?? "",
           });
         } catch (emailError) {
-          console.error("Erro ao enviar email de conclusão: - route.ts:204", emailError);
+          console.error("Erro ao enviar email de conclusão ao criador:", emailError);
+        }
+
+        // Notificar TODOS os assinantes que o documento foi concluído
+        for (const signerDs of allSigners) {
+          const signerHtml = buildSignerCompletedEmail({
+            signerName: signerDs.signer.name,
+            documentTitle: ds.document.title,
+            creatorName: ds.document.creator.name,
+            viewLink: `${baseUrl}/assinar/${signerDs.token}`,
+          });
+
+          try {
+            await sendEmail({
+              to: signerDs.signer.email,
+              subject: `✅ Contrato concluído: ${ds.document.title}`,
+              html: signerHtml,
+              notificationId: process.env.NOTIF_ID_DOCUMENTO_COMPLETAMENTE_ASSINADO ?? "",
+            });
+          } catch (emailError) {
+            console.error(`Erro ao enviar email de conclusão para ${signerDs.signer.email}:`, emailError);
+          }
         }
       } else {
         // Notificar TODOS os assinantes pendentes que agora podem assinar

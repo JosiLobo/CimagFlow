@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { FileText, Download, Send, XCircle, CheckCircle2, Clock, User, Calendar, ArrowLeft, Loader2, Eye, Copy } from "lucide-react";
+import { FileText, Download, Send, XCircle, CheckCircle2, Clock, User, Calendar, ArrowLeft, Loader2, Eye, Copy, Printer } from "lucide-react";
 import Link from "next/link";
 
 const statusConfig: Record<string, { label: string; bg: string; color: string }> = {
@@ -24,6 +24,8 @@ export default function DocumentoDetalheClient({ id }: { id: string }) {
   const [sending, setSending] = useState(false);
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [showPdf, setShowPdf] = useState(false);
+  const [showContent, setShowContent] = useState(false);
+  const contractRef = useRef<HTMLDivElement>(null);
 
   const fetchDoc = async () => {
     try {
@@ -34,7 +36,7 @@ export default function DocumentoDetalheClient({ id }: { id: string }) {
         const urlRes = await fetch("/api/upload/file-url", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cloud_storage_path: data.document.fileUrl, isPublic: true }),
+          body: JSON.stringify({ cloud_storage_path: data.document.fileUrl }),
         });
         const urlData = await urlRes.json();
         setFileUrl(urlData.url ?? null);
@@ -64,6 +66,48 @@ export default function DocumentoDetalheClient({ id }: { id: string }) {
   const copySignLink = (token: string) => {
     navigator.clipboard?.writeText(`${window.location.origin}/assinar/${token}`);
     alert("Link copiado!");
+  };
+
+  const handlePrintContract = () => {
+    if (!contractRef.current) return;
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    const headerImg = doc?.template?.headerImage;
+    const footerImg = doc?.template?.footerImage;
+    printWindow.document.write(`
+      <html><head><title>${doc?.title ?? "Contrato"}</title>
+      <style>
+        @page { margin: 0; }
+        body { margin: 0; font-family: 'Times New Roman', Georgia, serif; }
+        .page { max-width: 210mm; margin: 0 auto; }
+        .content { padding: 40px; font-size: 14px; line-height: 1.6; color: #1f2937; }
+        img { width: 100%; height: auto; }
+        .signers { margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb; }
+        .signer { margin-bottom: 16px; }
+        .signer-name { font-weight: bold; }
+        .signer-info { font-size: 12px; color: #6b7280; }
+      </style></head><body>
+      <div class="page">
+        ${headerImg ? `<img src="${headerImg}" alt="Cabeçalho" />` : ""}
+        <div class="content">${doc?.content ?? ""}</div>
+        ${doc?.status === "CONCLUIDO" && doc?.signers?.length ? `
+          <div class="content signers">
+            <h3>Assinaturas</h3>
+            ${doc.signers.map((s: any) => `
+              <div class="signer">
+                <div class="signer-name">${s.signer?.name}</div>
+                <div class="signer-info">${s.status === "ASSINADO" ? `Assinado em ${new Date(s.signedAt).toLocaleDateString("pt-BR")}` : s.status}</div>
+                ${s.signatureImage ? `<img src="${s.signatureImage}" style="width:200px;height:auto;margin-top:4px;" />` : ""}
+              </div>
+            `).join("")}
+          </div>
+        ` : ""}
+        ${footerImg ? `<img src="${footerImg}" alt="Rodapé" />` : ""}
+      </div>
+      <script>window.onload=function(){window.print();}</script>
+      </body></html>
+    `);
+    printWindow.document.close();
   };
 
   if (loading) return <div className="flex items-center justify-center py-24"><Loader2 className="w-8 h-8 animate-spin text-[#1E3A5F]" /></div>;
@@ -97,11 +141,49 @@ export default function DocumentoDetalheClient({ id }: { id: string }) {
             </div>
             {doc.content && (
               <div className="mt-4">
-                <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  <FileText className="w-4 h-4" /> Conteúdo do Documento
-                </h4>
-                <div className="bg-gray-50 rounded-xl p-4 max-h-96 overflow-y-auto text-sm text-gray-700 whitespace-pre-wrap font-mono border border-gray-200"
-                  dangerouslySetInnerHTML={{ __html: doc.content.replace(/\n/g, "<br />") }} />
+                <button onClick={() => setShowContent(!showContent)}
+                  className="w-full flex items-center justify-center gap-2 bg-gray-50 hover:bg-gray-100 text-gray-700 py-2.5 rounded-xl text-sm font-medium transition-colors">
+                  <FileText className="w-4 h-4" /> {showContent ? "Ocultar" : "Ver"} Contrato
+                </button>
+                {showContent && (
+                  <div className="mt-3 bg-white rounded-xl border border-gray-200 overflow-hidden" ref={contractRef}>
+                    <div className="bg-gray-100 overflow-y-auto" style={{ maxHeight: "70vh" }}>
+                      <div className="mx-auto bg-white shadow-sm" style={{ maxWidth: "210mm" }}>
+                        {doc.template?.headerImage && (
+                          <img src={doc.template.headerImage} alt="Cabeçalho" className="w-full h-auto" />
+                        )}
+                        <div
+                          className="px-10 py-8 text-gray-800 text-[14px] leading-relaxed"
+                          style={{ fontFamily: "'Times New Roman', 'Georgia', serif" }}
+                          dangerouslySetInnerHTML={{ __html: doc.content }}
+                        />
+                        {doc.status === "CONCLUIDO" && doc.signers?.length > 0 && (
+                          <div className="px-10 pb-8">
+                            <div className="border-t border-gray-200 pt-6 mt-4">
+                              <h4 className="text-sm font-bold text-gray-700 mb-4">Assinaturas</h4>
+                              <div className="grid grid-cols-2 gap-4">
+                                {doc.signers.map((s: any) => (
+                                  <div key={s.id} className="text-center">
+                                    {s.signatureImage && (
+                                      <img src={s.signatureImage} alt={`Assinatura de ${s.signer?.name}`} className="h-16 mx-auto mb-1" />
+                                    )}
+                                    <div className="border-t border-gray-300 pt-1">
+                                      <p className="text-xs font-semibold text-gray-800">{s.signer?.name}</p>
+                                      {s.signedAt && <p className="text-[10px] text-gray-500">Assinado em {new Date(s.signedAt).toLocaleDateString("pt-BR")}</p>}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        {doc.template?.footerImage && (
+                          <img src={doc.template.footerImage} alt="Rodapé" className="w-full h-auto mt-auto" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             {fileUrl && (
@@ -168,6 +250,12 @@ export default function DocumentoDetalheClient({ id }: { id: string }) {
                 <button onClick={handleCancel}
                   className="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 py-2.5 rounded-xl font-medium text-sm transition-colors">
                   <XCircle className="w-4 h-4" /> Cancelar
+                </button>
+              )}
+              {doc.status === "CONCLUIDO" && doc.content && (
+                <button onClick={handlePrintContract}
+                  className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl font-medium text-sm transition-colors">
+                  <Printer className="w-4 h-4" /> Imprimir / Baixar PDF
                 </button>
               )}
               {fileUrl && (

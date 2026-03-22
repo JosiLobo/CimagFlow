@@ -35,6 +35,7 @@ export default function AssinarClient({ token }: { token: string }) {
   const [cpf, setCpf] = useState("");
   const [cpfError, setCpfError] = useState("");
   const [signatureEmpty, setSignatureEmpty] = useState(true);
+  const [showSignedContract, setShowSignedContract] = useState(false);
   const sigCanvas = useRef<SignatureCanvas>(null);
 
   useEffect(() => {
@@ -181,21 +182,71 @@ export default function AssinarClient({ token }: { token: string }) {
   );
 
   if (data?.status !== "PENDENTE") return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl p-8 shadow-lg text-center max-w-md">
-        {data?.status === "ASSINADO" ? (
-          <>
-            <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold">Já Assinado</h2>
-            <p className="text-gray-500 mt-2">Este documento já foi assinado por você.</p>
-          </>
-        ) : (
-          <>
-            <XCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h2 className="text-xl font-bold">Não Disponível</h2>
-            <p className="text-gray-500 mt-2">Este link não está mais disponível.</p>
-          </>
-        )}
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-gradient-to-r from-[#1E3A5F] to-[#0D2340] px-4 py-4">
+        <div className="max-w-2xl mx-auto flex items-center gap-3">
+          <div className="w-10 h-10 relative flex-shrink-0">
+            <Image src="/cimag-logo.png" alt="CIMAG Logo" fill className="object-contain" />
+          </div>
+          <div>
+            <span className="text-white font-bold text-lg">CimagFlow</span>
+            <p className="text-blue-200 text-xs">Assinatura Digital</p>
+          </div>
+        </div>
+      </div>
+      <div className="max-w-2xl mx-auto p-4 mt-6">
+        <div className="bg-white rounded-2xl p-8 shadow-lg text-center">
+          {data?.status === "ASSINADO" ? (
+            <>
+              <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
+              <h2 className="text-xl font-bold">Já Assinado</h2>
+              <p className="text-gray-500 mt-2">Este documento já foi assinado por você.</p>
+            </>
+          ) : (
+            <>
+              <XCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h2 className="text-xl font-bold">Não Disponível</h2>
+              <p className="text-gray-500 mt-2">Este link não está mais disponível.</p>
+            </>
+          )}
+
+          {data?.status === "ASSINADO" && data?.document?.content && (
+            <div className="mt-6">
+              <button onClick={() => setShowSignedContract(!showSignedContract)}
+                className="flex items-center justify-center gap-2 mx-auto bg-[#1E3A5F] hover:bg-[#152d4a] text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-colors">
+                <FileText className="w-4 h-4" /> {showSignedContract ? "Ocultar" : "Ver"} Contrato
+              </button>
+              {showSignedContract && (
+                <div className="mt-4 bg-white rounded-xl border border-gray-200 overflow-hidden text-left">
+                  <div className="bg-gray-100 overflow-y-auto" style={{ maxHeight: "70vh" }}>
+                    <div className="mx-auto bg-white shadow-sm" style={{ maxWidth: "210mm" }}>
+                      {data.document.headerImage && (
+                        <img src={data.document.headerImage} alt="Cabeçalho" className="w-full h-auto" />
+                      )}
+                      <div
+                        className="px-10 py-8 text-gray-800 text-[14px] leading-relaxed"
+                        style={{ fontFamily: "'Times New Roman', 'Georgia', serif" }}
+                        dangerouslySetInnerHTML={{ __html: data.document.content }}
+                      />
+                      {data.document.footerImage && (
+                        <img src={data.document.footerImage} alt="Rodapé" className="w-full h-auto mt-auto" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {data?.status === "ASSINADO" && data?.document?.fileUrl && (
+            <div className="mt-4">
+              <a href={data.document.fileUrl} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-colors">
+                <Eye className="w-4 h-4" /> Ver PDF Anexo
+              </a>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
