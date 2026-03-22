@@ -67,11 +67,8 @@ export async function POST(req: Request) {
       });
 
       if (s3Response.ok) {
-        const bucketName = process.env.AWS_BUCKET_NAME || "";
-        const region = process.env.AWS_REGION || "us-west-2";
-        const fileUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${cloud_storage_path}`;
         return NextResponse.json({
-          fileUrl,
+          fileUrl: cloud_storage_path,
           fileName: file.name,
           cloud_storage_path,
           storage: "s3",

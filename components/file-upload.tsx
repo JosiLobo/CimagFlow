@@ -107,7 +107,7 @@ export default function FileUpload({
 
           if (presignedRes.ok) {
             const presignedData = await presignedRes.json();
-            const { uploadUrl, cloud_storage_path, fileUrl: presignedFileUrl } = presignedData;
+            const { uploadUrl, cloud_storage_path } = presignedData;
 
             const uploadRes = await fetch(uploadUrl, {
               method: 'PUT',
@@ -116,7 +116,7 @@ export default function FileUpload({
             });
 
             if (uploadRes.ok) {
-              finalUrl = presignedFileUrl || cloud_storage_path;
+              finalUrl = cloud_storage_path;
               s3Success = true;
             }
           }

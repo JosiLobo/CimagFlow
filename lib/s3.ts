@@ -28,20 +28,15 @@ export async function generatePresignedUploadUrl(
 
 export async function getFileUrl(
   cloud_storage_path: string,
-  isPublic: boolean
+  download = false
 ): Promise<string> {
-  if (isPublic) {
-    const { bucketName, region } = getBucketConfig();
-    return `https://${bucketName}.s3.${region}.amazonaws.com/${cloud_storage_path}`;
-  }
-
   const client = createS3Client();
   const { bucketName } = getBucketConfig();
 
   const command = new GetObjectCommand({
     Bucket: bucketName,
     Key: cloud_storage_path,
-    ResponseContentDisposition: "attachment",
+    ResponseContentDisposition: download ? "attachment" : "inline",
   });
 
   return getSignedUrl(client, command, { expiresIn: 3600 });

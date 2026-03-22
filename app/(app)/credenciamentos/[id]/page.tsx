@@ -49,6 +49,7 @@ export default function CredenciamentoDetalhesPage() {
   const [documents, setDocuments] = useState<any[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [approvingDoc, setApprovingDoc] = useState<string | null>(null);
+  const [viewingDoc, setViewingDoc] = useState<string | null>(null);
 
   // Ações
   const [saving, setSaving] = useState(false);
@@ -125,6 +126,25 @@ export default function CredenciamentoDetalhesPage() {
       toast.error("Erro ao carregar documentos");
     } finally {
       setLoadingDocs(false);
+    }
+  };
+
+  const handleViewDocument = async (docUrl: string) => {
+    setViewingDoc(docUrl);
+    try {
+      const res = await fetch("/api/upload/file-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cloud_storage_path: docUrl }),
+      });
+      if (!res.ok) throw new Error("Erro ao obter URL do documento");
+      const { url } = await res.json();
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      console.error("Erro ao visualizar documento:", error);
+      toast.error("Não foi possível abrir o documento");
+    } finally {
+      setViewingDoc(null);
     }
   };
 
@@ -827,12 +847,15 @@ export default function CredenciamentoDetalhesPage() {
                               size="sm"
                               variant="outline"
                               className="w-full"
-                              asChild
+                              onClick={() => handleViewDocument(doc.url)}
+                              disabled={viewingDoc === doc.url}
                             >
-                              <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                              {viewingDoc === doc.url ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
                                 <Download className="h-4 w-4 mr-2" />
-                                Visualizar
-                              </a>
+                              )}
+                              Visualizar
                             </Button>
 
                             <div className="flex gap-2">
