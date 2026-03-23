@@ -93,22 +93,23 @@ export async function POST(req: NextRequest) {
 
     // Gerar número de protocolo único
     const year = new Date().getFullYear();
-    const lastDemand = await prisma.demand.findFirst({
+    const allYearDemands = await prisma.demand.findMany({
       where: {
         protocolNumber: {
-          startsWith: `${year}-`,
+          startsWith: year.toString(),
         },
       },
-      orderBy: { protocolNumber: "desc" },
+      select: { protocolNumber: true },
     });
 
-    let protocolNumber;
-    if (lastDemand) {
-      const lastNumber = parseInt(lastDemand.protocolNumber.split("-")[1]);
-      protocolNumber = `${year}-${String(lastNumber + 1).padStart(6, "0")}`;
-    } else {
-      protocolNumber = `${year}-000001`;
+    let maxNumber = 0;
+    for (const d of allYearDemands) {
+      const digits = d.protocolNumber.replace(/\D/g, "").slice(4);
+      const num = parseInt(digits) || 0;
+      if (num > maxNumber) maxNumber = num;
     }
+
+    const protocolNumber = `${year}-${(maxNumber + 1).toString().padStart(6, "0")}`;
 
     // Criar demanda
     const demand = await prisma.demand.create({

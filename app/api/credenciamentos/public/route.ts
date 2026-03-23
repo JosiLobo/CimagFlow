@@ -191,6 +191,28 @@ export async function POST(request: NextRequest) {
       // Não falhar a requisição por erro no envio de email
     }
 
+    // Criar notificação interna para todos os usuários ativos
+    try {
+      const activeUsers = await prisma.user.findMany({
+        where: { isActive: true },
+        select: { id: true },
+      });
+
+      if (activeUsers.length > 0) {
+        await prisma.notification.createMany({
+          data: activeUsers.map((user) => ({
+            userId: user.id,
+            title: "Novo Credenciamento Recebido",
+            message: `Nova solicitação de credenciamento: ${companyName} - ${title} (${protocolNumber})`,
+            type: "CREDENCIAMENTO_RECEBIDO",
+            link: `/credenciamentos/${credenciamento.id}`,
+          })),
+        });
+      }
+    } catch (notifError) {
+      console.error("Erro ao criar notificação:", notifError);
+    }
+
     return NextResponse.json(
       {
         success: true,

@@ -277,6 +277,35 @@ export default function DemandaDetalhesPage() {
   const formatDateTime = (date: string) => new Date(date).toLocaleString("pt-BR");
   const formatDate = (date: string) => new Date(date).toLocaleDateString("pt-BR");
 
+  const openFile = async (path: string) => {
+    try {
+      // Se já é URL completa (http/https), abrir direto
+      if (path.startsWith("http://") || path.startsWith("https://")) {
+        window.open(path, "_blank");
+        return;
+      }
+      // Se é path local (/uploads/...), abrir direto
+      if (path.startsWith("/")) {
+        window.open(path, "_blank");
+        return;
+      }
+      // Buscar URL presigned do S3
+      const res = await fetch("/api/upload/file-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cloud_storage_path: path }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.open(data.url, "_blank");
+      } else {
+        toast.error("Erro ao abrir arquivo");
+      }
+    } catch {
+      toast.error("Erro ao abrir arquivo");
+    }
+  };
+
   const getFileName = (url: string) => {
     try {
       const parts = url.split("/");
@@ -577,9 +606,9 @@ export default function DemandaDetalhesPage() {
                                     try {
                                       const files = JSON.parse(h.newValue);
                                       return files.map((url: string, idx: number) => (
-                                        <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs text-blue-600 hover:underline">
+                                        <button key={idx} onClick={() => openFile(url)} className="flex items-center gap-2 text-xs text-blue-600 hover:underline cursor-pointer">
                                           <Paperclip className="h-3 w-3" /> {getFileName(url)}
-                                        </a>
+                                        </button>
                                       ));
                                     } catch { return null; }
                                   })()}
@@ -608,17 +637,15 @@ export default function DemandaDetalhesPage() {
               <CardContent>
                 <div className="grid gap-2">
                   {demand.attachments.map((file: string, index: number) => (
-                    <a
+                    <button
                       key={index}
-                      href={file}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent transition-colors"
+                      onClick={() => openFile(file)}
+                      className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent transition-colors cursor-pointer text-left"
                     >
                       <FileText className="h-5 w-5 text-blue-500 flex-shrink-0" />
                       <span className="flex-1 text-sm truncate">{getFileName(file)}</span>
                       <Download className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    </a>
+                    </button>
                   ))}
                 </div>
               </CardContent>
@@ -643,17 +670,15 @@ export default function DemandaDetalhesPage() {
                 {demand.responseAttachments && demand.responseAttachments.length > 0 && (
                   <div className="grid gap-2">
                     {demand.responseAttachments.map((file: string, index: number) => (
-                      <a
+                      <button
                         key={index}
-                        href={file}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-3 p-3 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors bg-white"
+                        onClick={() => openFile(file)}
+                        className="flex items-center gap-3 p-3 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors bg-white cursor-pointer text-left"
                       >
                         <FileText className="h-5 w-5 text-emerald-600 flex-shrink-0" />
                         <span className="flex-1 text-sm truncate">{getFileName(file)}</span>
                         <Download className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      </a>
+                      </button>
                     ))}
                   </div>
                 )}

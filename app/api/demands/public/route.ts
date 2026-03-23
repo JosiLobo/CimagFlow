@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
       requesterCpf,
       dotacao,
       prefectureId,
+      attachments,
     } = data;
 
     // Validações
@@ -50,22 +51,24 @@ export async function POST(req: NextRequest) {
 
     // Gerar número de protocolo
     const currentYear = new Date().getFullYear();
-    const lastDemand = await prisma.demand.findFirst({
+    const allYearDemands = await prisma.demand.findMany({
       where: {
         protocolNumber: {
           startsWith: currentYear.toString(),
         },
       },
-      orderBy: { protocolNumber: "desc" },
+      select: { protocolNumber: true },
     });
 
-    let nextNumber = 1;
-    if (lastDemand) {
-      const lastNumber = parseInt(lastDemand.protocolNumber.substring(4));
-      nextNumber = lastNumber + 1;
+    let maxNumber = 0;
+    for (const d of allYearDemands) {
+      // Extrair todos os dígitos após o ano (suporta formatos: 2026-000001, 2026000001, 2026-0000-1, etc.)
+      const digits = d.protocolNumber.replace(/\D/g, "").slice(4);
+      const num = parseInt(digits) || 0;
+      if (num > maxNumber) maxNumber = num;
     }
 
-    const protocolNumber = `${currentYear}-${nextNumber.toString().padStart(6, "0")}`;
+    const protocolNumber = `${currentYear}-${(maxNumber + 1).toString().padStart(6, "0")}`;
 
     // Criar demanda
     const demand = await prisma.demand.create({
@@ -81,6 +84,7 @@ export async function POST(req: NextRequest) {
         requesterCpf,
         dotacao,
         prefectureId,
+        attachments: attachments || [],
         publicSubmission: true, // Flag para identificar que foi criada publicamente
       },
       include: {
@@ -176,25 +180,22 @@ export async function POST(req: NextRequest) {
       // Não falhar a criação se o email falhar
     }
 
-    // Criar notificação interna para a equipe (opcional)
+    // Criar notificação interna para todos os usuários ativos
     try {
-      // Buscar um admin ou usuário ativo para notificar
-      const adminUser = await prisma.user.findFirst({
-        where: {
-          role: "ADMIN",
-          isActive: true,
-        },
+      const activeUsers = await prisma.user.findMany({
+        where: { isActive: true },
+        select: { id: true },
       });
 
-      if (adminUser) {
-        await prisma.notification.create({
-          data: {
-            userId: adminUser.id,
-            title: "Nova Demanda Pública",
-            message: `Nova demanda criada publicamente: ${title} (${protocolNumber})`,
-            type: "info",
+      if (activeUsers.length > 0) {
+        await prisma.notification.createMany({
+          data: activeUsers.map((user) => ({
+            userId: user.id,
+            title: "Nova Solicitação Recebida",
+            message: `Nova demanda recebida: ${title} - Solicitante: ${requesterName} (${protocolNumber})`,
+            type: "DEMANDA_RECEBIDA",
             link: `/demandas/${demand.id}`,
-          },
+          })),
         });
       }
     } catch (notifError) {
