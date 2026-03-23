@@ -270,7 +270,8 @@ export async function POST(req: Request, { params }: { params: RouteParams }) {
         <div class="sig-item">
           ${s.signatureImage ? `<img src="${s.signatureImage}" />` : ""}
           <div class="sig-name">${s.signer.name}</div>
-          <div class="sig-date">${s.signedAt ? new Date(s.signedAt).toLocaleDateString("pt-BR") : ""}</div>
+          <div class="sig-date">${s.signedAt ? `Assinado em ${new Date(s.signedAt).toLocaleDateString("pt-BR")} às ${new Date(s.signedAt).toLocaleTimeString("pt-BR")}` : ""}</div>
+          ${s.ipAddress ? `<div class="sig-date">IP: ${s.ipAddress}</div>` : ""}
         </div>
       `).join("")}
     </div>

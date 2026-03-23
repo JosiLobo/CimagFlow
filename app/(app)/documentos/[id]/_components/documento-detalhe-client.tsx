@@ -68,56 +68,81 @@ export default function DocumentoDetalheClient({ id }: { id: string }) {
     alert("Link copiado!");
   };
 
-  const handlePrintContract = () => {
-    if (!contractRef.current) return;
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
+  const handlePrintContract = async () => {
+    if (!doc?.content) return;
+    const html2pdf = (await import("html2pdf.js")).default;
     const headerImg = doc?.template?.headerImage;
     const footerImg = doc?.template?.footerImage;
-    printWindow.document.write(`
-      <html><head><title>${doc?.title ?? "Contrato"}</title>
-      <style>
-        @page { margin: 10mm 0; size: A4; }
-        body { margin: 0; font-family: 'Times New Roman', Georgia, serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        .page { max-width: 210mm; margin: 0 auto; }
-        .content { padding: 30px 40px; font-size: 14px; line-height: 1.6; color: #1f2937; }
-        .content p, .content div, .content li, .content h1, .content h2, .content h3, .content h4, .content table {
-          page-break-inside: avoid; break-inside: avoid;
-        }
-        .content table { width: 100%; border-collapse: collapse; }
-        .content table td, .content table th { page-break-inside: avoid; break-inside: avoid; }
-        img { width: 100%; height: auto; display: block; }
-        .header-img, .footer-img { page-break-inside: avoid; break-inside: avoid; }
-        .signers { margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb; page-break-inside: avoid; break-inside: avoid; }
-        .signer { margin-bottom: 16px; page-break-inside: avoid; break-inside: avoid; display: inline-block; width: 45%; vertical-align: top; margin-right: 4%; text-align: center; }
-        .signer-name { font-weight: bold; border-top: 1px solid #ccc; padding-top: 4px; margin-top: 4px; }
-        .signer-info { font-size: 12px; color: #6b7280; }
-        .signer img { width: 180px; height: auto; margin: 0 auto; }
-      </style></head><body>
-      <div class="page">
-        ${headerImg ? `<div class="header-img"><img src="${headerImg}" alt="Cabeçalho" /></div>` : ""}
-        <div class="content">${doc?.content ?? ""}</div>
-        ${doc?.status === "CONCLUIDO" && doc?.signers?.length ? `
-          <div class="content signers">
-            <h3 style="text-align:center;width:100%;margin-bottom:20px;">Assinaturas</h3>
-            ${doc.signers.map((s: any) => `
-              <div class="signer">
-                ${s.signatureImage ? `<img src="${s.signatureImage}" />` : ""}
-                <div class="signer-name">${s.signer?.name}</div>
-                <div class="signer-info">${s.status === "ASSINADO" ? `Assinado em ${new Date(s.signedAt).toLocaleDateString("pt-BR")}` : s.status}</div>
-              </div>
-            `).join("")}
+
+    const container = document.createElement("div");
+    container.style.fontFamily = "'Times New Roman', Georgia, serif";
+    container.style.color = "#1f2937";
+    container.style.fontSize = "14px";
+    container.style.lineHeight = "1.6";
+
+    if (headerImg) {
+      const img = document.createElement("img");
+      img.src = headerImg;
+      img.style.width = "100%";
+      img.style.height = "auto";
+      img.style.display = "block";
+      container.appendChild(img);
+    }
+
+    const content = document.createElement("div");
+    content.style.padding = "30px 40px";
+    content.innerHTML = doc?.content ?? "";
+    container.appendChild(content);
+
+    if (doc?.status === "CONCLUIDO" && doc?.signers?.length) {
+      const signersDiv = document.createElement("div");
+      signersDiv.style.padding = "0 40px";
+      signersDiv.style.marginTop = "32px";
+      signersDiv.style.paddingTop = "24px";
+      signersDiv.style.borderTop = "1px solid #e5e7eb";
+      signersDiv.innerHTML = `
+        <h3 style="text-align:center;margin-bottom:20px;">Assinaturas</h3>
+        ${doc.signers.map((s: any) => `
+          <div style="display:inline-block;width:45%;vertical-align:top;margin-right:4%;text-align:center;margin-bottom:16px;">
+            ${s.signatureImage ? `<img src="${s.signatureImage}" style="width:180px;height:auto;margin:0 auto;display:block;" />` : ""}
+            <div style="font-weight:bold;border-top:1px solid #ccc;padding-top:4px;margin-top:4px;">${s.signer?.name}</div>
+            <div style="font-size:12px;color:#6b7280;">${s.status === "ASSINADO" ? `Assinado em ${new Date(s.signedAt).toLocaleDateString("pt-BR")} às ${new Date(s.signedAt).toLocaleTimeString("pt-BR")}` : s.status}</div>
+            ${s.ipAddress ? `<div style="font-size:10px;color:#9ca3af;">IP: ${s.ipAddress}</div>` : ""}
           </div>
-        ` : ""}        ${doc.company?.itemsFileName ? `
-          <div class="content" style="margin-top:16px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:13px;color:#374151;">
-            <strong>Anexo de Itens:</strong> ${doc.company.itemsFileName}
-          </div>
-        ` : ""}        ${footerImg ? `<div class="footer-img"><img src="${footerImg}" alt="Rodapé" /></div>` : ""}
-      </div>
-      <script>window.onload=function(){window.print();}</script>
-      </body></html>
-    `);
-    printWindow.document.close();
+        `).join("")}
+      `;
+      container.appendChild(signersDiv);
+    }
+
+    if (doc.company?.itemsFileName) {
+      const anexo = document.createElement("div");
+      anexo.style.padding = "0 40px";
+      anexo.style.marginTop = "16px";
+      anexo.style.paddingTop = "12px";
+      anexo.style.borderTop = "1px solid #e5e7eb";
+      anexo.style.fontSize = "13px";
+      anexo.style.color = "#374151";
+      anexo.innerHTML = `<strong>Anexo de Itens:</strong> ${doc.company.itemsFileName}`;
+      container.appendChild(anexo);
+    }
+
+    if (footerImg) {
+      const img = document.createElement("img");
+      img.src = footerImg;
+      img.style.width = "100%";
+      img.style.height = "auto";
+      img.style.display = "block";
+      container.appendChild(img);
+    }
+
+    const filename = `${(doc?.title ?? "documento").replace(/[^a-zA-Z0-9À-ú ]/g, "").trim().replace(/\s+/g, "_")}.pdf`;
+    html2pdf().set({
+      margin: [0, 0, 0, 0],
+      filename,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+    }).from(container).save();
   };
 
   if (loading) return <div className="flex items-center justify-center py-24"><Loader2 className="w-8 h-8 animate-spin text-[#1E3A5F]" /></div>;
@@ -179,7 +204,8 @@ export default function DocumentoDetalheClient({ id }: { id: string }) {
                                     )}
                                     <div className="border-t border-gray-300 pt-1">
                                       <p className="text-xs font-semibold text-gray-800">{s.signer?.name}</p>
-                                      {s.signedAt && <p className="text-[10px] text-gray-500">Assinado em {new Date(s.signedAt).toLocaleDateString("pt-BR")}</p>}
+                                      {s.signedAt && <p className="text-[10px] text-gray-500">Assinado em {new Date(s.signedAt).toLocaleDateString("pt-BR")} às {new Date(s.signedAt).toLocaleTimeString("pt-BR")}</p>}
+                                      {s.ipAddress && <p className="text-[10px] text-gray-400">IP: {s.ipAddress}</p>}
                                     </div>
                                   </div>
                                 ))}
@@ -284,7 +310,7 @@ export default function DocumentoDetalheClient({ id }: { id: string }) {
               {doc.status === "CONCLUIDO" && doc.content && (
                 <button onClick={handlePrintContract}
                   className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl font-medium text-sm transition-colors">
-                  <Printer className="w-4 h-4" /> Imprimir / Baixar PDF
+                  <Download className="w-4 h-4" /> Baixar PDF
                 </button>
               )}
               {fileUrl && (

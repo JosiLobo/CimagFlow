@@ -373,33 +373,53 @@ export default function AbrirDemandaPublicaPage() {
                 </div>
               </div>
 
-              <div className="grid gap-6">
-                <div className="grid gap-3">
-                  <Label htmlFor="prefectureId" className="flex items-center gap-2 text-base font-semibold">
-                    <Building2 className="h-4 w-4 text-blue-600" />
-                    Prefeitura <span className="text-red-500">*</span>
-                  </Label>
-                  <Select
-                    value={formData.prefectureId}
-                    onValueChange={(value) => handleChange("prefectureId", value)}
-                  >
-                    <SelectTrigger className="h-12 border-2 focus:border-blue-500">
-                      <SelectValue placeholder="Selecione a prefeitura do consórcio..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.isArray(prefectures) && prefectures
-                        .filter((prefecture) => prefecture.id && prefecture.name)
-                        .map((prefecture) => (
-                          <SelectItem key={prefecture.id} value={prefecture.id}>
-                            {prefecture.name} - {prefecture.city}/{prefecture.state}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
+              <div className="grid gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="prefectureId" className="flex items-center gap-2 text-sm font-semibold">
+                      <Building2 className="h-4 w-4 text-blue-600" />
+                      Prefeitura <span className="text-red-500">*</span>
+                    </Label>
+                    <Select
+                      value={formData.prefectureId}
+                      onValueChange={(value) => handleChange("prefectureId", value)}
+                    >
+                      <SelectTrigger className="h-11 border-2 focus:border-blue-500">
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.isArray(prefectures) && prefectures
+                          .filter((prefecture) => prefecture.id && prefecture.name)
+                          .map((prefecture) => (
+                            <SelectItem key={prefecture.id} value={prefecture.id}>
+                              {prefecture.name} - {prefecture.city}/{prefecture.state}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="priority" className="text-sm font-semibold">Prioridade</Label>
+                    <Select
+                      value={formData.priority}
+                      onValueChange={(value) => handleChange("priority", value)}
+                    >
+                      <SelectTrigger className="h-11 border-2 focus:border-blue-500">
+                        <SelectValue placeholder="Selecione a prioridade..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="BAIXA">🟢 Baixa</SelectItem>
+                        <SelectItem value="MEDIA">🔵 Média</SelectItem>
+                        <SelectItem value="ALTA">🟠 Alta</SelectItem>
+                        <SelectItem value="URGENTE">🔴 Urgente</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
-                <div className="grid gap-3">
-                  <Label htmlFor="title" className="flex items-center gap-2 text-base font-semibold">
+                <div className="grid gap-2">
+                  <Label htmlFor="title" className="flex items-center gap-2 text-sm font-semibold">
                     <FileText className="h-4 w-4 text-blue-600" />
                     Título da Solicitação <span className="text-red-500">*</span>
                   </Label>
@@ -409,58 +429,35 @@ export default function AbrirDemandaPublicaPage() {
                     value={formData.title}
                     onChange={(e) => handleChange("title", e.target.value)}
                     required
-                    className="h-12 border-2 focus:border-blue-500"
+                    className="h-11 border-2 focus:border-blue-500"
                   />
-                  <p className="text-xs text-gray-600">💡 Seja claro e específico para facilitar o atendimento</p>
                 </div>
 
-                <div className="grid gap-3">
-                  <Label htmlFor="description" className="text-base font-semibold">
+                <div className="grid gap-2">
+                  <Label htmlFor="description" className="text-sm font-semibold">
                     Descrição Detalhada <span className="text-red-500">*</span>
                   </Label>
                   <Textarea
                     id="description"
-                    placeholder="Descreva sua solicitação incluindo:\n• O que você precisa\n• Para qual finalidade\n• Prazo esperado (se houver)\n• Qualquer informação relevante"
+                    placeholder="Descreva sua solicitação: o que você precisa, para qual finalidade, prazo esperado e informações relevantes"
                     value={formData.description}
                     onChange={(e) => handleChange("description", e.target.value)}
-                    rows={7}
+                    rows={5}
                     required
                     className="resize-none border-2 focus:border-blue-500"
                   />
-                  <p className="text-xs text-blue-600 flex items-start gap-2 bg-blue-50 p-2 rounded">
-                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                    Informações completas aceleram o processo de atendimento
-                  </p>
                 </div>
 
-                <div className="grid gap-3">
-                  <Label htmlFor="priority" className="text-base">Prioridade</Label>
-                  <Select
-                    value={formData.priority}
-                    onValueChange={(value) => handleChange("priority", value)}
-                  >
-                    <SelectTrigger className="h-11">
-                      <SelectValue placeholder="Selecione a prioridade..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="BAIXA">🟢 Baixa</SelectItem>
-                      <SelectItem value="MEDIA">🔵 Média</SelectItem>
-                      <SelectItem value="ALTA">🟠 Alta</SelectItem>
-                      <SelectItem value="URGENTE">🔴 Urgente</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid gap-3">
-                  <Label className="text-base">Anexos (Opcional)</Label>
+                <div className="grid gap-2">
+                  <Label className="text-sm font-semibold">Anexos (Opcional)</Label>
                   <FileUpload
                     onFilesChange={(files) => setFormData(prev => ({ ...prev, attachments: files }))}
                     maxFiles={5}
                     maxSizeMB={10}
                     publicUpload={true}
                   />
-                  <p className="text-sm text-gray-500">
-                    Anexe documentos, imagens ou arquivos relacionados à sua demanda (máx. 5 arquivos, 10MB cada)
+                  <p className="text-xs text-gray-500">
+                    Máx. 5 arquivos, 10MB cada
                   </p>
                 </div>
               </div>
@@ -478,9 +475,9 @@ export default function AbrirDemandaPublicaPage() {
                 </div>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="grid gap-3">
-                  <Label htmlFor="requesterName" className="flex items-center gap-2 text-base font-semibold">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="requesterName" className="flex items-center gap-2 text-sm font-semibold">
                     <User className="h-4 w-4 text-green-600" />
                     Nome Completo <span className="text-red-500">*</span>
                   </Label>
@@ -490,23 +487,23 @@ export default function AbrirDemandaPublicaPage() {
                     value={formData.requesterName}
                     onChange={(e) => handleChange("requesterName", e.target.value)}
                     required
-                    className="h-12 border-2 focus:border-green-500"
+                    className="h-11 border-2 focus:border-green-500"
                   />
                 </div>
 
-                <div className="grid gap-3">
-                  <Label htmlFor="requesterCpf" className="text-base font-semibold">CPF</Label>
+                <div className="grid gap-2">
+                  <Label htmlFor="requesterCpf" className="text-sm font-semibold">CPF</Label>
                   <Input
                     id="requesterCpf"
                     placeholder="000.000.000-00"
                     value={formData.requesterCpf}
                     onChange={(e) => handleChange("requesterCpf", e.target.value)}
-                    className="h-12 border-2 focus:border-green-500 font-mono"
+                    className="h-11 border-2 focus:border-green-500 font-mono"
                   />
                 </div>
 
-                <div className="grid gap-3">
-                  <Label htmlFor="dotacao" className="text-base font-semibold">
+                <div className="grid gap-2">
+                  <Label htmlFor="dotacao" className="text-sm font-semibold">
                     Dotação Orçamentária <span className="text-red-500">*</span>
                   </Label>
                   <Input
@@ -515,13 +512,12 @@ export default function AbrirDemandaPublicaPage() {
                     value={formData.dotacao}
                     onChange={(e) => handleChange("dotacao", e.target.value)}
                     required
-                    className="h-12 border-2 focus:border-green-500 font-mono"
+                    className="h-11 border-2 focus:border-green-500 font-mono"
                   />
-                  <p className="text-xs text-gray-600">📊 Código da dotação orçamentária relacionada à solicitação</p>
                 </div>
 
-                <div className="grid gap-3">
-                  <Label htmlFor="requesterEmail" className="flex items-center gap-2 text-base font-semibold">
+                <div className="grid gap-2">
+                  <Label htmlFor="requesterEmail" className="flex items-center gap-2 text-sm font-semibold">
                     <Mail className="h-4 w-4 text-green-600" />
                     Email <span className="text-red-500">*</span>
                   </Label>
@@ -532,28 +528,23 @@ export default function AbrirDemandaPublicaPage() {
                     value={formData.requesterEmail}
                     onChange={(e) => handleChange("requesterEmail", e.target.value)}
                     required
-                    className="h-12 border-2 focus:border-green-500"
+                    className="h-11 border-2 focus:border-green-500"
                   />
-                  <p className="text-xs text-green-600 bg-green-50 p-2 rounded">
-                    📧 Todas as atualizações e o número de protocolo serão enviados para este email
-                  </p>
                 </div>
 
-                <div className="grid gap-3">
-                  <Label htmlFor="requesterPhone" className="flex items-center gap-2 text-base font-semibold">
+                <div className="grid gap-2">
+                  <Label htmlFor="requesterPhone" className="flex items-center gap-2 text-sm font-semibold">
                     <Phone className="h-4 w-4 text-green-600" />
-                    Telefone
+                    Telefone <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="requesterPhone"
                     placeholder="(00) 00000-0000"
                     value={formData.requesterPhone}
                     onChange={(e) => handleChange("requesterPhone", e.target.value)}
-                    className="h-12 border-2 focus:border-green-500 font-mono"
+                    required
+                    className="h-11 border-2 focus:border-green-500 font-mono"
                   />
-                  <p className="text-xs text-gray-600">
-                    📱 Telefone para contato (opcional)
-                  </p>
                 </div>
               </div>
             </div>
@@ -651,88 +642,83 @@ export default function AbrirDemandaPublicaPage() {
                 </div>
               </div>
 
-              <div className="grid gap-6">
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="grid gap-3">
-                    <Label htmlFor="companyName" className="flex items-center gap-2 text-base font-semibold">
-                      <Building className="h-4 w-4 text-purple-600" />
-                      Razão Social <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="companyName"
-                      placeholder="Razão social conforme CNPJ"
-                      value={credenciamentoData.companyName}
-                      onChange={(e) => handleCredenciamentoChange("companyName", e.target.value)}
-                      required
-                      className="h-12 border-2 focus:border-purple-500"
-                    />
-                  </div>
-
-                  <div className="grid gap-3">
-                    <Label htmlFor="tradeName" className="text-base font-semibold">Nome Fantasia</Label>
-                    <Input
-                      id="tradeName"
-                      placeholder="Nome comercial da empresa (se diferente da razão social)"
-                      value={credenciamentoData.tradeName}
-                      onChange={(e) => handleCredenciamentoChange("tradeName", e.target.value)}
-                      className="h-12 border-2 focus:border-purple-500"
-                    />
-                  </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="companyName" className="flex items-center gap-2 text-sm font-semibold">
+                    <Building className="h-4 w-4 text-purple-600" />
+                    Razão Social <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="companyName"
+                    placeholder="Razão social conforme CNPJ"
+                    value={credenciamentoData.companyName}
+                    onChange={(e) => handleCredenciamentoChange("companyName", e.target.value)}
+                    required
+                    className="h-11 border-2 focus:border-purple-500"
+                  />
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="grid gap-3">
-                    <Label htmlFor="requesterCnpj" className="text-base font-semibold">CNPJ <span className="text-red-500">*</span></Label>
-                    <Input
-                      id="requesterCnpj"
-                      placeholder="00.000.000/0000-00"
-                      value={credenciamentoData.requesterCnpj}
-                      onChange={(e) => handleCredenciamentoChange("requesterCnpj", e.target.value)}
-                      required
-                      className="h-12 border-2 focus:border-purple-500 font-mono"
-                    />
-                    <p className="text-xs text-purple-600">🏢 CNPJ ativo e regular na Receita Federal</p>
-                  </div>
-
-                  <div className="grid gap-3">
-                    <Label htmlFor="activityArea" className="text-base font-semibold">Área de Atuação</Label>
-                    <Input
-                      id="activityArea"
-                      placeholder="Ex: Tecnologia da Informação, Saúde, Educação, Construção Civil..."
-                      value={credenciamentoData.activityArea}
-                      onChange={(e) => handleCredenciamentoChange("activityArea", e.target.value)}
-                      className="h-12 border-2 focus:border-purple-500"
-                    />
-                  </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="tradeName" className="text-sm font-semibold">Nome Fantasia</Label>
+                  <Input
+                    id="tradeName"
+                    placeholder="Nome comercial da empresa"
+                    value={credenciamentoData.tradeName}
+                    onChange={(e) => handleCredenciamentoChange("tradeName", e.target.value)}
+                    className="h-11 border-2 focus:border-purple-500"
+                  />
                 </div>
 
-                <div className="grid gap-3">
-                  <Label htmlFor="companyAddress" className="text-base font-semibold">Endereço Completo <span className="text-red-500">*</span></Label>
+                <div className="grid gap-2">
+                  <Label htmlFor="requesterCnpj" className="text-sm font-semibold">CNPJ <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="requesterCnpj"
+                    placeholder="00.000.000/0000-00"
+                    value={credenciamentoData.requesterCnpj}
+                    onChange={(e) => handleCredenciamentoChange("requesterCnpj", e.target.value)}
+                    required
+                    className="h-11 border-2 focus:border-purple-500 font-mono"
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="activityArea" className="text-sm font-semibold">Área de Atuação</Label>
+                  <Input
+                    id="activityArea"
+                    placeholder="Ex: Tecnologia, Saúde, Educação..."
+                    value={credenciamentoData.activityArea}
+                    onChange={(e) => handleCredenciamentoChange("activityArea", e.target.value)}
+                    className="h-11 border-2 focus:border-purple-500"
+                  />
+                </div>
+
+                <div className="sm:col-span-2 grid gap-2">
+                  <Label htmlFor="companyAddress" className="text-sm font-semibold">Endereço Completo <span className="text-red-500">*</span></Label>
                   <Input
                     id="companyAddress"
                     placeholder="Rua/Avenida, número, complemento, bairro"
                     value={credenciamentoData.companyAddress}
                     onChange={(e) => handleCredenciamentoChange("companyAddress", e.target.value)}
                     required
-                    className="h-12 border-2 focus:border-purple-500"
+                    className="h-11 border-2 focus:border-purple-500"
                   />
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-6">
-                  <div className="grid gap-3">
-                    <Label htmlFor="companyCity" className="text-base font-semibold">Cidade <span className="text-red-500">*</span></Label>
-                    <Input
-                      id="companyCity"
-                      placeholder="Nome da cidade"
-                      value={credenciamentoData.companyCity}
-                      onChange={(e) => handleCredenciamentoChange("companyCity", e.target.value)}
-                      required
-                      className="h-12 border-2 focus:border-purple-500"
-                    />
-                  </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="companyCity" className="text-sm font-semibold">Cidade <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="companyCity"
+                    placeholder="Nome da cidade"
+                    value={credenciamentoData.companyCity}
+                    onChange={(e) => handleCredenciamentoChange("companyCity", e.target.value)}
+                    required
+                    className="h-11 border-2 focus:border-purple-500"
+                  />
+                </div>
 
-                  <div className="grid gap-3">
-                    <Label htmlFor="companyState" className="text-base font-semibold">Estado <span className="text-red-500">*</span></Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="companyState" className="text-sm font-semibold">Estado <span className="text-red-500">*</span></Label>
                     <Input
                       id="companyState"
                       placeholder="UF"
@@ -740,51 +726,45 @@ export default function AbrirDemandaPublicaPage() {
                       onChange={(e) => handleCredenciamentoChange("companyState", e.target.value.toUpperCase())}
                       required
                       maxLength={2}
-                      className="h-12 border-2 focus:border-purple-500 uppercase font-semibold text-center"
+                      className="h-11 border-2 focus:border-purple-500 uppercase font-semibold text-center"
                     />
                   </div>
-
-                  <div className="grid gap-3">
-                    <Label htmlFor="companyCep" className="text-base font-semibold">CEP <span className="text-red-500">*</span></Label>
+                  <div className="grid gap-2">
+                    <Label htmlFor="companyCep" className="text-sm font-semibold">CEP <span className="text-red-500">*</span></Label>
                     <Input
                       id="companyCep"
                       placeholder="00000-000"
                       value={credenciamentoData.companyCep}
                       onChange={(e) => handleCredenciamentoChange("companyCep", e.target.value)}
                       required
-                      className="h-12 border-2 focus:border-purple-500 font-mono"
+                      className="h-11 border-2 focus:border-purple-500 font-mono"
                     />
                   </div>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="grid gap-3">
-                    <Label htmlFor="companyPhone" className="text-base font-semibold">Telefone da Empresa <span className="text-red-500">*</span></Label>
-                    <Input
-                      id="companyPhone"
-                      placeholder="(00) 00000-0000"
-                      value={credenciamentoData.companyPhone}
-                      onChange={(e) => handleCredenciamentoChange("companyPhone", e.target.value)}
-                      required
-                      className="h-12 border-2 focus:border-purple-500"
-                    />
-                  </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="companyPhone" className="text-sm font-semibold">Telefone da Empresa <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="companyPhone"
+                    placeholder="(00) 00000-0000"
+                    value={credenciamentoData.companyPhone}
+                    onChange={(e) => handleCredenciamentoChange("companyPhone", e.target.value)}
+                    required
+                    className="h-11 border-2 focus:border-purple-500"
+                  />
+                </div>
 
-                  <div className="grid gap-3">
-                    <Label htmlFor="companyEmail" className="text-base font-semibold">Email da Empresa <span className="text-red-500">*</span></Label>
-                    <Input
-                      id="companyEmail"
-                      type="email"
-                      placeholder="contato@empresa.com.br"
-                      value={credenciamentoData.companyEmail}
-                      onChange={(e) => handleCredenciamentoChange("companyEmail", e.target.value)}
-                      required
-                      className="h-12 border-2 focus:border-purple-500"
-                    />
-                    <p className="text-xs text-purple-600 bg-purple-50 p-2 rounded">
-                      📧 Email principal da empresa para notificações e contato
-                    </p>
-                  </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="companyEmail" className="text-sm font-semibold">Email da Empresa <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="companyEmail"
+                    type="email"
+                    placeholder="contato@empresa.com.br"
+                    value={credenciamentoData.companyEmail}
+                    onChange={(e) => handleCredenciamentoChange("companyEmail", e.target.value)}
+                    required
+                    className="h-11 border-2 focus:border-purple-500"
+                  />
                 </div>
               </div>
             </div>
@@ -801,9 +781,9 @@ export default function AbrirDemandaPublicaPage() {
                 </div>
               </div>
 
-              <div className="grid gap-6">
-                <div className="grid gap-3">
-                  <Label htmlFor="title-cred" className="flex items-center gap-2 text-base font-semibold">
+              <div className="grid gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="title-cred" className="flex items-center gap-2 text-sm font-semibold">
                     <FileText className="h-4 w-4 text-indigo-600" />
                     Título do Credenciamento <span className="text-red-500">*</span>
                   </Label>
@@ -813,61 +793,59 @@ export default function AbrirDemandaPublicaPage() {
                     value={credenciamentoData.title}
                     onChange={(e) => handleCredenciamentoChange("title", e.target.value)}
                     required
-                    className="h-12 border-2 focus:border-indigo-500"
+                    className="h-11 border-2 focus:border-indigo-500"
                   />
-                  <p className="text-xs text-gray-600">📝 Indique claramente o tipo de fornecimento ou serviço</p>
                 </div>
 
-                <div className="grid gap-3">
-                  <Label htmlFor="description-cred" className="text-base font-semibold">
+                <div className="grid gap-2">
+                  <Label htmlFor="description-cred" className="text-sm font-semibold">
                     Descrição Detalhada <span className="text-red-500">*</span>
                   </Label>
                   <Textarea
                     id="description-cred"
-                    placeholder="Inclua:\n• Atividades principais da empresa\n• Tempo de atuação no mercado\n• Principais clientes ou projetos\n• Diferenciais competitivos\n• Capacidade de atendimento"
+                    placeholder="Inclua: atividades principais, tempo de atuação, principais clientes, diferenciais competitivos, capacidade de atendimento"
                     value={credenciamentoData.description}
                     onChange={(e) => handleCredenciamentoChange("description", e.target.value)}
-                    rows={8}
+                    rows={5}
                     required
                     className="resize-none border-2 focus:border-indigo-500"
                   />
-                  <p className="text-xs text-indigo-600 bg-indigo-50 p-2 rounded">
-                    💼 Uma descrição completa aumenta as chances de aprovação
-                  </p>
                 </div>
 
-                <div className="grid gap-3">
-                  <Label htmlFor="requestedServices" className="text-base font-semibold">Serviços/Produtos Solicitados</Label>
-                  <Textarea
-                    id="requestedServices"
-                    placeholder="Liste detalhadamente:\n• Produtos que pretende fornecer\n• Serviços que pode prestar\n• Especificações técnicas relevantes\n• Marcas e modelos (se aplicável)"
-                    value={credenciamentoData.requestedServices}
-                    onChange={(e) => handleCredenciamentoChange("requestedServices", e.target.value)}
-                    rows={5}
-                    className="resize-none border-2 focus:border-indigo-500"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="requestedServices" className="text-sm font-semibold">Serviços/Produtos Solicitados</Label>
+                    <Textarea
+                      id="requestedServices"
+                      placeholder="Liste os produtos e serviços que pretende fornecer"
+                      value={credenciamentoData.requestedServices}
+                      onChange={(e) => handleCredenciamentoChange("requestedServices", e.target.value)}
+                      rows={4}
+                      className="resize-none border-2 focus:border-indigo-500"
+                    />
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="priority-cred" className="text-sm font-semibold">Prioridade</Label>
+                    <Select
+                      value={credenciamentoData.priority}
+                      onValueChange={(value) => handleCredenciamentoChange("priority", value)}
+                    >
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder="Selecione a prioridade..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="BAIXA">🟢 Baixa</SelectItem>
+                        <SelectItem value="MEDIA">🔵 Média</SelectItem>
+                        <SelectItem value="ALTA">🟠 Alta</SelectItem>
+                        <SelectItem value="URGENTE">🔴 Urgente</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
-                <div className="grid gap-3">
-                  <Label htmlFor="priority-cred" className="text-base">Prioridade</Label>
-                  <Select
-                    value={credenciamentoData.priority}
-                    onValueChange={(value) => handleCredenciamentoChange("priority", value)}
-                  >
-                    <SelectTrigger className="h-11">
-                      <SelectValue placeholder="Selecione a prioridade..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="BAIXA">🟢 Baixa</SelectItem>
-                      <SelectItem value="MEDIA">🔵 Média</SelectItem>
-                      <SelectItem value="ALTA">🟠 Alta</SelectItem>
-                      <SelectItem value="URGENTE">🔴 Urgente</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid gap-3">
-                  <Label className="text-base font-semibold">Documentos Anexos <span className="text-red-500">*</span></Label>
+                <div className="grid gap-2">
+                  <Label className="text-sm font-semibold">Documentos Anexos <span className="text-red-500">*</span></Label>
                   <FileUpload
                     onFilesChange={(files) => setCredenciamentoData(prev => ({ ...prev, attachments: files }))}
                     maxFiles={10}
@@ -875,17 +853,17 @@ export default function AbrirDemandaPublicaPage() {
                     publicUpload={true}
                   />
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                    <p className="text-sm font-semibold text-amber-900 mb-2">📄 Documentos Necessários:</p>
-                    <ul className="text-xs text-amber-800 space-y-1 ml-4 list-disc">
+                    <p className="text-sm font-semibold text-amber-900 mb-1">📄 Documentos Necessários:</p>
+                    <ul className="text-xs text-amber-800 space-y-0.5 ml-4 list-disc">
                       <li>Contrato Social ou Estatuto</li>
                       <li>Cartão CNPJ atualizado</li>
                       <li>Certidões negativas (Federal, Estadual, Municipal)</li>
                       <li>Certidão de Regularidade do FGTS</li>
                       <li>Certidão Negativa Trabalhista</li>
-                      <li>Alvara de  Funcionamento (se aplicável)</li>
+                      <li>Alvará de Funcionamento (se aplicável)</li>
                       <li>Certificados ou Licenças (se aplicável)</li>
                     </ul>
-                    <p className="text-xs text-amber-700 mt-2">ⓘ Máx. 10 arquivos, 10MB cada</p>
+                    <p className="text-xs text-amber-700 mt-1">ⓘ Máx. 10 arquivos, 10MB cada</p>
                   </div>
                 </div>
               </div>
@@ -903,9 +881,9 @@ export default function AbrirDemandaPublicaPage() {
                 </div>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="grid gap-3">
-                  <Label htmlFor="requesterName-cred" className="flex items-center gap-2 text-base font-semibold">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="requesterName-cred" className="flex items-center gap-2 text-sm font-semibold">
                     <User className="h-4 w-4 text-green-600" />
                     Nome Completo <span className="text-red-500">*</span>
                   </Label>
@@ -915,24 +893,24 @@ export default function AbrirDemandaPublicaPage() {
                     value={credenciamentoData.requesterName}
                     onChange={(e) => handleCredenciamentoChange("requesterName", e.target.value)}
                     required
-                    className="h-12 border-2 focus:border-green-500"
+                    className="h-11 border-2 focus:border-green-500"
                   />
                 </div>
 
-                <div className="grid gap-3">
-                  <Label htmlFor="requesterCpf-cred" className="text-base font-semibold">CPF <span className="text-red-500">*</span></Label>
+                <div className="grid gap-2">
+                  <Label htmlFor="requesterCpf-cred" className="text-sm font-semibold">CPF <span className="text-red-500">*</span></Label>
                   <Input
                     id="requesterCpf-cred"
                     placeholder="000.000.000-00"
                     value={credenciamentoData.requesterCpf}
                     onChange={(e) => handleCredenciamentoChange("requesterCpf", e.target.value)}
                     required
-                    className="h-12 border-2 focus:border-green-500 font-mono"
+                    className="h-11 border-2 focus:border-green-500 font-mono"
                   />
                 </div>
 
-                <div className="grid gap-3">
-                  <Label htmlFor="requesterEmail-cred" className="flex items-center gap-2 text-base font-semibold">
+                <div className="grid gap-2">
+                  <Label htmlFor="requesterEmail-cred" className="flex items-center gap-2 text-sm font-semibold">
                     <Mail className="h-4 w-4 text-green-600" />
                     Email do Responsável <span className="text-red-500">*</span>
                   </Label>
@@ -943,15 +921,12 @@ export default function AbrirDemandaPublicaPage() {
                     value={credenciamentoData.requesterEmail}
                     onChange={(e) => handleCredenciamentoChange("requesterEmail", e.target.value)}
                     required
-                    className="h-12 border-2 focus:border-green-500"
+                    className="h-11 border-2 focus:border-green-500"
                   />
-                  <p className="text-xs text-green-600 bg-green-50 p-2 rounded">
-                    📧 Email pessoal do responsável legal pela empresa. Receberá todas as atualizações do processo
-                  </p>
                 </div>
 
-                <div className="grid gap-3">
-                  <Label htmlFor="requesterPhone-cred" className="flex items-center gap-2 text-base font-semibold">
+                <div className="grid gap-2">
+                  <Label htmlFor="requesterPhone-cred" className="flex items-center gap-2 text-sm font-semibold">
                     <Phone className="h-4 w-4 text-green-600" />
                     Telefone do Responsável <span className="text-red-500">*</span>
                   </Label>
@@ -961,11 +936,8 @@ export default function AbrirDemandaPublicaPage() {
                     value={credenciamentoData.requesterPhone}
                     onChange={(e) => handleCredenciamentoChange("requesterPhone", e.target.value)}
                     required
-                    className="h-12 border-2 focus:border-green-500 font-mono"
+                    className="h-11 border-2 focus:border-green-500 font-mono"
                   />
-                  <p className="text-xs text-green-600">
-                    📱 Telefone para contato direto com o responsável
-                  </p>
                 </div>
               </div>
             </div>
