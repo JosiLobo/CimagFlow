@@ -63,7 +63,7 @@ export async function POST(req: Request) {
       const s3Response = await fetch(uploadUrl, {
         method: "PUT",
         body: arrayBuffer,
-        headers: { "Content-Type": file.type },
+        headers: { "Content-Type": file.type, "Content-Disposition": "inline" },
       });
 
       if (s3Response.ok) {

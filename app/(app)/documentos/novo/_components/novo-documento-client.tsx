@@ -77,7 +77,7 @@ export default function NovoDocumentoClient() {
           const urlObj = new URL(uploadUrl);
           const signedHeaders = urlObj.searchParams.get("X-Amz-SignedHeaders") ?? "";
           const uploadHeaders: Record<string, string> = { "Content-Type": f.type };
-          if (signedHeaders.includes("content-disposition")) uploadHeaders["Content-Disposition"] = "attachment";
+          if (signedHeaders.includes("content-disposition")) uploadHeaders["Content-Disposition"] = "inline";
 
           const uploadRes = await fetch(uploadUrl, { method: "PUT", headers: uploadHeaders, body: f });
           if (!uploadRes.ok) {
