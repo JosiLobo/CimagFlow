@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
+import { writeFile, mkdir, stat } from "fs/promises";
 import path from "path";
 
 export const dynamic = "force-dynamic";
@@ -53,6 +53,12 @@ export async function POST(req: Request) {
     const filePath = path.join(uploadsDir, uniqueName);
     const bytes = new Uint8Array(await file.arrayBuffer());
     await writeFile(filePath, bytes);
+
+    // Verify file was written
+    const fileStat = await stat(filePath);
+    if (fileStat.size === 0) {
+      throw new Error("Arquivo salvo está vazio");
+    }
 
     const fileUrl = `/uploads/${uniqueName}`;
 
