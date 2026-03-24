@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
       prisma.credenciamento.count(),
       prisma.minuteAdhesion.count(),
       prisma.minuteAdhesion.groupBy({ by: ["status"], _count: true }),
-      prisma.documentSigner.count({ where: { signer: { email: userEmail }, status: "PENDENTE" } }),
+      prisma.documentSigner.count({ where: { status: "PENDENTE", document: { status: "EM_ANDAMENTO" } } }),
       prisma.documentSigner.count(),
       prisma.documentSigner.count({ where: { status: "ASSINADO" } }),
       prisma.documentSigner.groupBy({ by: ["status"], _count: true }),
