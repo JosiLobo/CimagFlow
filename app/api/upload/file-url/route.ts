@@ -17,9 +17,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Caminho inválido" }, { status: 400 });
     }
 
-    // Local public path — return as-is
+    // Local public path — serve through API
     if (cloud_storage_path.startsWith("/")) {
-      return NextResponse.json({ url: cloud_storage_path });
+      return NextResponse.json({ url: `/api/upload/serve?path=${encodeURIComponent(cloud_storage_path.replace(/^\//, ''))}` });
     }
 
     // S3 full URL — extract the key
