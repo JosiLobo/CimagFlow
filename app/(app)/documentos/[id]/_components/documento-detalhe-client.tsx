@@ -33,13 +33,21 @@ export default function DocumentoDetalheClient({ id }: { id: string }) {
       const data = await res.json();
       setDoc(data.document ?? null);
       if (data.document?.fileUrl) {
-        const urlRes = await fetch("/api/upload/file-url", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cloud_storage_path: data.document.fileUrl }),
-        });
-        const urlData = await urlRes.json();
-        setFileUrl(urlData.url ?? null);
+        let fUrl = data.document.fileUrl as string;
+        // Local files: normalize path and use directly (Next.js serves public/ at root)
+        if (fUrl.startsWith("/public/")) fUrl = fUrl.replace("/public/", "/");
+        if (fUrl.startsWith("/uploads/") || fUrl.startsWith("/public/uploads/")) {
+          setFileUrl(fUrl.replace("/public/uploads/", "/uploads/"));
+        } else {
+          // S3/remote path — resolve via API
+          const urlRes = await fetch("/api/upload/file-url", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cloud_storage_path: fUrl }),
+          });
+          const urlData = await urlRes.json();
+          setFileUrl(urlData.url ?? null);
+        }
       }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }

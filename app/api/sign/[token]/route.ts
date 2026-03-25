@@ -53,6 +53,8 @@ export async function GET(req: Request, { params }: { params: RouteParams }) {
     // Gerar presigned URLs para arquivos S3
     async function resolveUrl(path: string | null | undefined): Promise<string | null> {
       if (!path) return null;
+      // Normalize local paths: /public/uploads/x → /uploads/x
+      if (path.startsWith("/public/")) path = path.replace("/public/", "/");
       if (path.startsWith("/") || path.startsWith("http://") || path.startsWith("https://")) return path;
       try { return await getFileUrl(path); } catch { return null; }
     }

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
+import { writeFile, mkdir, stat } from "fs/promises";
 import path from "path";
-import { generatePresignedUploadUrl } from "@/lib/s3";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +21,6 @@ const ALLOWED_TYPES = [
 
 const MAX_SIZE = 20 * 1024 * 1024; // 20MB
 
-// Upload direto: tenta S3 primeiro, fallback para armazenamento local
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
@@ -46,47 +44,21 @@ export async function POST(req: Request) {
       );
     }
 
-    // Sanitizar nome do arquivo
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const uniqueName = `${Date.now()}-${safeName}`;
 
-    // Tentar upload via S3 primeiro
-    try {
-      const { uploadUrl, cloud_storage_path } = await generatePresignedUploadUrl(
-        safeName,
-        file.type,
-        true
-      );
-
-      // Upload server-side para o S3
-      const arrayBuffer = await file.arrayBuffer();
-      const s3Response = await fetch(uploadUrl, {
-        method: "PUT",
-        body: arrayBuffer,
-        headers: { "Content-Type": file.type, "Content-Disposition": "inline" },
-      });
-
-      if (s3Response.ok) {
-        return NextResponse.json({
-          fileUrl: cloud_storage_path,
-          fileName: file.name,
-          cloud_storage_path,
-          storage: "s3",
-        });
-      }
-      // Se o upload S3 falhou, cai no fallback local abaixo
-      console.warn("S3 upload failed, falling back to local storage");
-    } catch (s3Error) {
-      console.warn("S3 not available, using local storage:", (s3Error as Error).message);
-    }
-
-    // Fallback: salvar localmente em public/uploads
     const uploadsDir = path.join(process.cwd(), "public", "uploads");
     await mkdir(uploadsDir, { recursive: true });
 
     const filePath = path.join(uploadsDir, uniqueName);
     const bytes = new Uint8Array(await file.arrayBuffer());
     await writeFile(filePath, bytes);
+
+    // Verify file was written
+    const fileStat = await stat(filePath);
+    if (fileStat.size === 0) {
+      throw new Error("Arquivo salvo está vazio");
+    }
 
     const fileUrl = `/uploads/${uniqueName}`;
 

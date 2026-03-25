@@ -60,51 +60,20 @@ export default function NovoDocumentoClient() {
     setFile(f);
     setUploading(true);
     try {
-      // 1) Prefer presigned upload
-      let uploadedCloudPath = "";
-      try {
-        const presignRes = await fetch("/api/upload/presigned", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fileName: f.name, contentType: f.type, isPublic: true }),
-        });
+      const formData = new FormData();
+      formData.append("file", f);
+      const directRes = await fetch("/api/upload/direct-public", {
+        method: "POST",
+        body: formData,
+      });
 
-        if (presignRes.ok) {
-          const presignData = await presignRes.json();
-          const uploadUrl = presignData.uploadUrl as string;
-          uploadedCloudPath = presignData.cloud_storage_path || "";
-
-          const urlObj = new URL(uploadUrl);
-          const signedHeaders = urlObj.searchParams.get("X-Amz-SignedHeaders") ?? "";
-          const uploadHeaders: Record<string, string> = { "Content-Type": f.type };
-          if (signedHeaders.includes("content-disposition")) uploadHeaders["Content-Disposition"] = "inline";
-
-          const uploadRes = await fetch(uploadUrl, { method: "PUT", headers: uploadHeaders, body: f });
-          if (!uploadRes.ok) {
-            uploadedCloudPath = "";
-          }
-        }
-      } catch {
-        uploadedCloudPath = "";
+      if (!directRes.ok) {
+        const err = await directRes.json().catch(() => ({}));
+        throw new Error(err.error || "Erro ao fazer upload do arquivo");
       }
 
-      // 2) Fallback to direct-public endpoint
-      if (!uploadedCloudPath) {
-        const formData = new FormData();
-        formData.append("file", f);
-        const directRes = await fetch("/api/upload/direct-public", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!directRes.ok) {
-          const err = await directRes.json().catch(() => ({}));
-          throw new Error(err.error || "Erro ao fazer upload do arquivo");
-        }
-
-        const directData = await directRes.json();
-        uploadedCloudPath = directData.cloud_storage_path || directData.fileUrl || "";
-      }
+      const directData = await directRes.json();
+      const uploadedCloudPath = directData.cloud_storage_path || directData.fileUrl || "";
 
       if (!uploadedCloudPath) {
         throw new Error("Não foi possível obter o caminho do arquivo enviado.");
