@@ -241,6 +241,27 @@ export default function DocumentoDetalheClient({ id }: { id: string }) {
                   </a>
                 </div>
                 {showPdf && <iframe src={fileUrl} className="w-full h-96 rounded-xl border border-gray-200" title="Documento PDF" />}
+                {doc.status === "CONCLUIDO" && doc.signers?.length > 0 && (
+                  <div className="mt-4 bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <div className="px-6 py-5">
+                      <h4 className="text-sm font-bold text-gray-700 mb-4">Assinaturas</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        {doc.signers.filter((s: any) => s.status === "ASSINADO").map((s: any) => (
+                          <div key={s.id} className="text-center">
+                            {s.signatureImage && (
+                              <img src={s.signatureImage} alt={`Assinatura de ${s.signer?.name}`} className="h-16 mx-auto mb-1" />
+                            )}
+                            <div className="border-t border-gray-300 pt-1">
+                              <p className="text-xs font-semibold text-gray-800">{s.signer?.name}</p>
+                              {s.signedAt && <p className="text-[10px] text-gray-500">Assinado em {new Date(s.signedAt).toLocaleDateString("pt-BR")} às {new Date(s.signedAt).toLocaleTimeString("pt-BR")}</p>}
+                              {s.ipAddress && <p className="text-[10px] text-gray-400">IP: {s.ipAddress}</p>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             {doc.company?.itemsFileUrl && (

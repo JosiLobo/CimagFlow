@@ -228,6 +228,26 @@ export default function AssinarClient({ token }: { token: string }) {
                         style={{ fontFamily: "'Times New Roman', 'Georgia', serif" }}
                         dangerouslySetInnerHTML={{ __html: data.document.content }}
                       />
+                      {data.allSigners && data.allSigners.length > 0 && (
+                        <div className="px-10 pb-8">
+                          <div className="border-t border-gray-200 pt-6 mt-4">
+                            <h4 className="text-sm font-bold text-gray-700 mb-4">Assinaturas</h4>
+                            <div className="grid grid-cols-2 gap-4">
+                              {data.allSigners.filter((s: any) => s.status === "ASSINADO").map((s: any, idx: number) => (
+                                <div key={idx} className="text-center">
+                                  {s.signatureImage && (
+                                    <img src={s.signatureImage} alt={`Assinatura de ${s.name}`} className="h-16 mx-auto mb-1" />
+                                  )}
+                                  <div className="border-t border-gray-300 pt-1">
+                                    <p className="text-xs font-semibold text-gray-800">{s.name}</p>
+                                    {s.signedAt && <p className="text-[10px] text-gray-500">Assinado em {new Date(s.signedAt).toLocaleDateString("pt-BR")} às {new Date(s.signedAt).toLocaleTimeString("pt-BR")}</p>}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       {data.document.footerImage && (
                         <img src={data.document.footerImage} alt="Rodapé" className="w-full h-auto mt-auto" />
                       )}
@@ -244,6 +264,27 @@ export default function AssinarClient({ token }: { token: string }) {
                 className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-colors">
                 <Eye className="w-4 h-4" /> Ver PDF Anexo
               </a>
+            </div>
+          )}
+
+          {data?.status === "ASSINADO" && data?.allSigners && data.allSigners.filter((s: any) => s.status === "ASSINADO").length > 0 && (
+            <div className="mt-4 bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div className="px-6 py-5">
+                <h4 className="text-sm font-bold text-gray-700 mb-4">Assinaturas</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  {data.allSigners.filter((s: any) => s.status === "ASSINADO").map((s: any, idx: number) => (
+                    <div key={idx} className="text-center">
+                      {s.signatureImage && (
+                        <img src={s.signatureImage} alt={`Assinatura de ${s.name}`} className="h-16 mx-auto mb-1" />
+                      )}
+                      <div className="border-t border-gray-300 pt-1">
+                        <p className="text-xs font-semibold text-gray-800">{s.name}</p>
+                        {s.signedAt && <p className="text-[10px] text-gray-500">Assinado em {new Date(s.signedAt).toLocaleDateString("pt-BR")} às {new Date(s.signedAt).toLocaleTimeString("pt-BR")}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -333,6 +374,26 @@ export default function AssinarClient({ token }: { token: string }) {
                         style={{ fontFamily: "'Times New Roman', 'Georgia', serif" }}
                         dangerouslySetInnerHTML={{ __html: doc.content }}
                       />
+                      {data?.allSigners && data.allSigners.filter((s: any) => s.status === "ASSINADO").length > 0 && (
+                        <div className="px-10 pb-8">
+                          <div className="border-t border-gray-200 pt-6 mt-4">
+                            <h4 className="text-sm font-bold text-gray-700 mb-4">Assinaturas</h4>
+                            <div className="grid grid-cols-2 gap-4">
+                              {data.allSigners.filter((s: any) => s.status === "ASSINADO").map((s: any, idx: number) => (
+                                <div key={idx} className="text-center">
+                                  {s.signatureImage && (
+                                    <img src={s.signatureImage} alt={`Assinatura de ${s.name}`} className="h-16 mx-auto mb-1" />
+                                  )}
+                                  <div className="border-t border-gray-300 pt-1">
+                                    <p className="text-xs font-semibold text-gray-800">{s.name}</p>
+                                    {s.signedAt && <p className="text-[10px] text-gray-500">Assinado em {new Date(s.signedAt).toLocaleDateString("pt-BR")} às {new Date(s.signedAt).toLocaleTimeString("pt-BR")}</p>}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       {doc.footerImage && (
                         <img src={doc.footerImage} alt="Rodapé" className="w-full h-auto mt-auto" />
                       )}
@@ -351,6 +412,26 @@ export default function AssinarClient({ token }: { token: string }) {
           )}
           {showPdf && doc?.fileUrl && (
             <iframe src={doc.fileUrl} className="w-full h-96 rounded-xl border border-gray-200 mb-4" title="Documento" />
+          )}
+          {doc?.fileUrl && data?.allSigners && data.allSigners.filter((s: any) => s.status === "ASSINADO").length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 mb-4 overflow-hidden">
+              <div className="px-6 py-5">
+                <h4 className="text-sm font-bold text-gray-700 mb-4">Assinaturas</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  {data.allSigners.filter((s: any) => s.status === "ASSINADO").map((s: any, idx: number) => (
+                    <div key={idx} className="text-center">
+                      {s.signatureImage && (
+                        <img src={s.signatureImage} alt={`Assinatura de ${s.name}`} className="h-16 mx-auto mb-1" />
+                      )}
+                      <div className="border-t border-gray-300 pt-1">
+                        <p className="text-xs font-semibold text-gray-800">{s.name}</p>
+                        {s.signedAt && <p className="text-[10px] text-gray-500">Assinado em {new Date(s.signedAt).toLocaleDateString("pt-BR")} às {new Date(s.signedAt).toLocaleTimeString("pt-BR")}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           )}
         </motion.div>
 

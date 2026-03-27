@@ -47,7 +47,7 @@ export default function NovoDocumentoClient() {
   const [reminderDays, setReminderDays] = useState(3);
 
   const handleFileChange = async (f: File) => {
-    if (f.type !== "application/pdf") {
+    if (f.type !== "application/pdf" && !f.name.toLowerCase().endsWith(".pdf")) {
       alert("Apenas arquivos PDF são permitidos.");
       return;
     }
@@ -255,7 +255,7 @@ export default function NovoDocumentoClient() {
               ref={fileInputRef}
               id="file-input"
               type="file"
-              accept=".pdf"
+              accept=".pdf,application/pdf"
               className="hidden"
               onChange={(e) => {
                 const f = e.target.files?.[0];
@@ -445,7 +445,7 @@ export default function NovoDocumentoClient() {
                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] text-sm" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Lembrete após (dias sem assinar)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Lembrete</label>
               <input type="number" value={reminderDays} onChange={(e) => setReminderDays(Number(e.target.value))} min={1} max={30}
                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] text-sm" />
             </div>

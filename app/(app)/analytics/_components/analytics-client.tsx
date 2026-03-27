@@ -16,6 +16,9 @@ import {
   Loader2,
   Calendar,
   Activity,
+  FileDown,
+  FileSpreadsheet,
+  Printer,
 } from "lucide-react";
 import {
   BarChart,
@@ -114,6 +117,31 @@ export default function AnalyticsClient() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState("30");
+  const [showReportMenu, setShowReportMenu] = useState(false);
+  const [generatingReport, setGeneratingReport] = useState(false);
+
+  const generateReport = async (format: "html" | "csv") => {
+    setGeneratingReport(true);
+    setShowReportMenu(false);
+    try {
+      const url = `/api/analytics/report?period=${period}&format=${format}`;
+      if (format === "csv") {
+        const res = await fetch(url);
+        const blob = await res.blob();
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `relatorio-cimagflow.csv`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      } else {
+        window.open(url, "_blank");
+      }
+    } catch (error) {
+      console.error("Erro ao gerar relatório:", error);
+    } finally {
+      setGeneratingReport(false);
+    }
+  };
 
   useEffect(() => {
     fetchAnalytics();
@@ -168,16 +196,57 @@ export default function AnalyticsClient() {
           </h1>
           <p className="text-gray-500">Visão geral e métricas do sistema</p>
         </div>
-        <select
-          value={period}
-          onChange={(e) => setPeriod(e.target.value)}
-          className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] bg-white"
-        >
-          <option value="7">Últimos 7 dias</option>
-          <option value="30">Últimos 30 dias</option>
-          <option value="90">Últimos 90 dias</option>
-          <option value="365">Último ano</option>
-        </select>
+        <div className="flex items-center gap-3">
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] bg-white"
+          >
+            <option value="7">Últimos 7 dias</option>
+            <option value="30">Últimos 30 dias</option>
+            <option value="90">Últimos 90 dias</option>
+            <option value="365">Último ano</option>
+          </select>
+
+          <div className="relative">
+            <button
+              onClick={() => setShowReportMenu(!showReportMenu)}
+              disabled={generatingReport}
+              className="flex items-center gap-2 px-4 py-2 bg-[#1E3A5F] hover:bg-[#152d4a] text-white rounded-lg font-semibold transition-colors shadow-sm disabled:opacity-50"
+            >
+              {generatingReport ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <FileDown className="w-4 h-4" />
+              )}
+              Gerar Relatório
+            </button>
+            {showReportMenu && (
+              <div className="absolute right-0 top-full mt-2 bg-white rounded-xl shadow-lg border border-gray-100 py-2 w-56 z-50">
+                <button
+                  onClick={() => generateReport("html")}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+                >
+                  <Printer className="w-5 h-5 text-[#1E3A5F]" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Relatório Completo</p>
+                    <p className="text-xs text-gray-500">Visualizar / Imprimir PDF</p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => generateReport("csv")}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+                >
+                  <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Exportar CSV</p>
+                    <p className="text-xs text-gray-500">Planilha com todos os dados</p>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Summary Cards */}

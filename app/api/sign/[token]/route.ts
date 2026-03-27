@@ -98,6 +98,8 @@ export async function GET(req: Request, { params }: { params: RouteParams }) {
           order: idx + 1,
           status: s.status,
           signedAt: s.signedAt,
+          signatureImage: s.signatureImage ?? null,
+          ipAddress: s.ipAddress ?? null,
         })),
       },
     });
