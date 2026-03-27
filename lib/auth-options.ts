@@ -64,6 +64,7 @@ export const authOptions: NextAuthOptions = {
           phone: user.phone ?? undefined,
           photo: user.photo ?? undefined,
           permissions: (user as any).permissions ?? [],
+          mustChangePassword: (user as any).mustChangePassword ?? false,
         };
       },
     }),
@@ -76,6 +77,7 @@ export const authOptions: NextAuthOptions = {
         token.phone = (user as any).phone;
         token.photo = (user as any).photo;
         token.permissions = (user as any).permissions ?? [];
+        token.mustChangePassword = (user as any).mustChangePassword ?? false;
       }
       return token;
     },
@@ -86,6 +88,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).phone = token.phone;
         (session.user as any).photo = token.photo;
         (session.user as any).permissions = token.permissions ?? [];
+        (session.user as any).mustChangePassword = token.mustChangePassword ?? false;
       }
       return session;
     },

@@ -3,8 +3,131 @@ import prisma from "@/lib/db";
 import { sendEmail, buildCompletedEmail, buildSignatureEmail, buildSignerCompletedEmail } from "@/lib/email";
 import { createAuditLog } from "@/lib/audit";
 import { getFileUrl } from "@/lib/s3";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import { writeFile, readFile } from "fs/promises";
+import path from "path";
 
 export const dynamic = "force-dynamic";
+
+// Função para embutir assinaturas no PDF
+async function embedSignaturesInPdf(
+  pdfBytes: Uint8Array,
+  signers: { name: string; signatureImage: string | null; signedAt: Date | null; ipAddress: string | null }[]
+): Promise<Uint8Array> {
+  const pdfDoc = await PDFDocument.load(pdfBytes);
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  // Calcular espaço necessário
+  const sigHeight = 90; // altura por assinatura (imagem + texto)
+  const sigWidth = 220;
+  const cols = 2;
+  const rows = Math.ceil(signers.length / cols);
+  const totalHeight = rows * sigHeight + 60; // +60 para título e margem
+
+  // Pegar última página
+  const pages = pdfDoc.getPages();
+  const lastPage = pages[pages.length - 1];
+  const { width, height } = lastPage.getSize();
+
+  // Verificar se há espaço na última página (pelo menos totalHeight de espaço livre na parte inferior)
+  // Vamos adicionar uma nova página para as assinaturas se necessário
+  let targetPage = lastPage;
+  let startY = totalHeight + 40; // Começar de baixo para cima
+
+  // Se precisar mais espaço, criar nova página
+  if (totalHeight > height * 0.4) {
+    targetPage = pdfDoc.addPage([width, height]);
+    startY = height - 40;
+  } else {
+    // Colocar antes do final da página
+    startY = totalHeight + 30;
+  }
+
+  // Título "Assinaturas"
+  const titleY = startY;
+  targetPage.drawText("Assinaturas", {
+    x: 40,
+    y: titleY,
+    size: 14,
+    font: fontBold,
+    color: rgb(0.12, 0.23, 0.37),
+  });
+
+  // Linha separadora
+  targetPage.drawLine({
+    start: { x: 40, y: titleY - 8 },
+    end: { x: width - 40, y: titleY - 8 },
+    thickness: 0.5,
+    color: rgb(0.8, 0.8, 0.8),
+  });
+
+  // Desenhar assinaturas
+  for (let i = 0; i < signers.length; i++) {
+    const s = signers[i];
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const x = 40 + col * (sigWidth + 40);
+    const y = titleY - 30 - row * sigHeight;
+
+    // Imagem da assinatura
+    if (s.signatureImage) {
+      try {
+        const base64Data = s.signatureImage.replace(/^data:image\/png;base64,/, "");
+        const sigImgBytes = Uint8Array.from(Buffer.from(base64Data, "base64"));
+        const sigImg = await pdfDoc.embedPng(sigImgBytes);
+        const sigDims = sigImg.scale(0.35);
+        targetPage.drawImage(sigImg, {
+          x,
+          y: y - Math.min(sigDims.height, 40),
+          width: Math.min(sigDims.width, 180),
+          height: Math.min(sigDims.height, 40),
+        });
+      } catch (e) {
+        console.error("Erro ao embutir imagem de assinatura:", e);
+      }
+    }
+
+    // Linha sob a assinatura
+    targetPage.drawLine({
+      start: { x, y: y - 45 },
+      end: { x: x + 180, y: y - 45 },
+      thickness: 0.5,
+      color: rgb(0.6, 0.6, 0.6),
+    });
+
+    // Nome
+    targetPage.drawText(s.name, {
+      x,
+      y: y - 57,
+      size: 9,
+      font: fontBold,
+      color: rgb(0.2, 0.2, 0.2),
+    });
+
+    // Data/hora
+    if (s.signedAt) {
+      const dt = new Date(s.signedAt);
+      targetPage.drawText(
+        `Assinado em ${dt.toLocaleDateString("pt-BR")} às ${dt.toLocaleTimeString("pt-BR")}`,
+        { x, y: y - 68, size: 7, font, color: rgb(0.4, 0.4, 0.4) }
+      );
+    }
+
+    // IP
+    if (s.ipAddress) {
+      targetPage.drawText(`IP: ${s.ipAddress}`, {
+        x,
+        y: y - 78,
+        size: 6,
+        font,
+        color: rgb(0.6, 0.6, 0.6),
+      });
+    }
+  }
+
+  return pdfDoc.save();
+}
 
 type RouteParams = { token: string } | Promise<{ token: string }>;
 
@@ -98,6 +221,8 @@ export async function GET(req: Request, { params }: { params: RouteParams }) {
           order: idx + 1,
           status: s.status,
           signedAt: s.signedAt,
+          signatureImage: s.signatureImage ?? null,
+          ipAddress: s.ipAddress ?? null,
         })),
       },
     });
@@ -283,20 +408,79 @@ export async function POST(req: Request, { params }: { params: RouteParams }) {
           attachments.push({ filename: `${ds.document.title.replace(/[^a-zA-Z0-9À-ú ]/g, "")}.html`, content: contractHtml });
         }
 
-        // Se tem PDF anexo, buscar do S3
+        // Se tem PDF anexo, embutir assinaturas dentro do PDF
         if (ds.document.fileUrl) {
           try {
-            const { getFileUrl } = await import("@/lib/s3");
-            const pdfUrl = await getFileUrl(ds.document.fileUrl, true);
-            const pdfRes = await fetch(pdfUrl);
-            if (pdfRes.ok) {
-              const pdfBuffer = Buffer.from(await pdfRes.arrayBuffer());
+            let pdfBytes: Uint8Array | null = null;
+            const fileUrl = ds.document.fileUrl;
+
+            // Carregar PDF (local ou S3)
+            if (fileUrl.startsWith("/uploads/") || fileUrl.startsWith("/public/uploads/")) {
+              const localPath = path.join(process.cwd(), "public", fileUrl.replace(/^\/public/, "").replace(/^\//, ""));
+              pdfBytes = new Uint8Array(await readFile(localPath));
+            } else {
+              const { getFileUrl } = await import("@/lib/s3");
+              const pdfUrl = await getFileUrl(fileUrl, true);
+              const pdfRes = await fetch(pdfUrl);
+              if (pdfRes.ok) {
+                pdfBytes = new Uint8Array(await pdfRes.arrayBuffer());
+              }
+            }
+
+            if (pdfBytes) {
+              // Embutir assinaturas no PDF
+              const signedPdfBytes = await embedSignaturesInPdf(
+                pdfBytes,
+                signersWithSignatures.map(s => ({
+                  name: s.signer.name,
+                  signatureImage: s.signatureImage,
+                  signedAt: s.signedAt,
+                  ipAddress: s.ipAddress,
+                }))
+              );
+
+              // Salvar PDF assinado (local ou S3)
+              if (fileUrl.startsWith("/uploads/") || fileUrl.startsWith("/public/uploads/")) {
+                const localPath = path.join(process.cwd(), "public", fileUrl.replace(/^\/public/, "").replace(/^\//, ""));
+                await writeFile(localPath, new Uint8Array(signedPdfBytes));
+              } else {
+                try {
+                  const { PutObjectCommand } = await import("@aws-sdk/client-s3");
+                  const { createS3Client, getBucketConfig } = await import("@/lib/aws-config");
+                  const client = createS3Client();
+                  const { bucketName } = getBucketConfig();
+                  await client.send(new PutObjectCommand({
+                    Bucket: bucketName,
+                    Key: fileUrl,
+                    Body: Buffer.from(signedPdfBytes),
+                    ContentType: "application/pdf",
+                  }));
+                } catch (s3Err) {
+                  console.error("Erro ao salvar PDF assinado no S3:", s3Err);
+                }
+              }
+
+              // Adicionar PDF assinado como anexo no email
               const ext = ds.document.fileName?.split(".").pop() || "pdf";
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              attachments.push({ filename: `${ds.document.title.replace(/[^a-zA-Z0-9À-ú ]/g, "")}.${ext}`, content: pdfBuffer as any });
+              attachments.push({ filename: `${ds.document.title.replace(/[^a-zA-Z0-9À-ú ]/g, "")}_assinado.${ext}`, content: Buffer.from(signedPdfBytes) as any });
             }
           } catch (err) {
-            console.error("Erro ao buscar PDF para anexo:", err);
+            console.error("Erro ao embutir assinaturas no PDF:", err);
+            // Fallback: anexar PDF original
+            try {
+              const { getFileUrl } = await import("@/lib/s3");
+              const pdfUrl = await getFileUrl(ds.document.fileUrl, true);
+              const pdfRes = await fetch(pdfUrl);
+              if (pdfRes.ok) {
+                const pdfBuffer = Buffer.from(await pdfRes.arrayBuffer());
+                const ext = ds.document.fileName?.split(".").pop() || "pdf";
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                attachments.push({ filename: `${ds.document.title.replace(/[^a-zA-Z0-9À-ú ]/g, "")}.${ext}`, content: pdfBuffer as any });
+              }
+            } catch (fallbackErr) {
+              console.error("Erro ao buscar PDF original:", fallbackErr);
+            }
           }
         }
 
