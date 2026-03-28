@@ -180,15 +180,3 @@ export default function RegistroPage() {
     </div>
   );
 }
-
-          <p className="text-center text-gray-500 mt-4">
-            Já tem conta?{" "}
-            <Link href="/login" className="text-[#10B981] font-semibold hover:underline">
-              Fazer login
-            </Link>
-          </p>
-        </div>
-      </motion.div>
-    </div>
-  );
-}
